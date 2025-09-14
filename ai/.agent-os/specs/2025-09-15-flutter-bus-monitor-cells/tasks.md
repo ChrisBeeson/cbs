@@ -32,15 +32,15 @@
   - [x] 3.7 Implement message display with scrollable list and empty state
   - [x] 3.8 Verify all tests pass for flow UI integration
 
-- [ ] 4. Implement Message Display and UI Features
-  - [ ] 4.1 Write tests for color-coded message display and auto-scroll behavior
-  - [ ] 4.2 Add color coding logic (UI=blue, logic=green, errors=red, others=white70)
-  - [ ] 4.3 Implement auto-scroll functionality with smooth animations (300ms, easeOut)
-  - [ ] 4.4 Create message list UI with timestamps and proper styling
-  - [ ] 4.5 Add message count display in header
-  - [ ] 4.6 Implement empty state placeholder with icons and text
-  - [ ] 4.7 Add proper resource disposal for controllers and notifiers
-  - [ ] 4.8 Verify all tests pass for message display features
+- [x] 4. Implement Message Display and UI Features
+  - [x] 4.1 Write tests for color-coded message display and auto-scroll behavior
+  - [x] 4.2 Add color coding logic (UI=blue, logic=green, errors=red, others=white70)
+  - [x] 4.3 Implement auto-scroll functionality with smooth animations (300ms, easeOut)
+  - [x] 4.4 Create message list UI with timestamps and proper styling
+  - [x] 4.5 Add message count display in header
+  - [x] 4.6 Implement empty state placeholder with icons and text
+  - [x] 4.7 Add proper resource disposal for controllers and notifiers
+  - [x] 4.8 Verify all tests pass for message display features
 
 - [ ] 5. Update Main Application and Dependencies
   - [ ] 5.1 Write integration tests for full application with all cells
