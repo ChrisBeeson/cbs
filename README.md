@@ -22,6 +22,10 @@ cargo test --workspace
 - Error Codes: `ai/docs/error_codes.md`
 - Agent OS Standards: `ai/docs/agent_os_standards.md`
 
+## Cells
+- Python: `cells/python`
+- Flutter: `cells/flutter`
+
 ## Validate Envelopes
 ```bash
 ./ai/scripts/validate_envelopes.sh

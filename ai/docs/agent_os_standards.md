@@ -15,11 +15,13 @@
 - Update `ai/docs/*` and `README.md` with meaningful changes.
 - Document major functions/refactors within the changed files.
 
-### Supabase & Riverpod
-- Use Supabase MCP for DB; do not run migrations from CI.
-- Prefer Riverpod for state; logging via `log.d/e/i/w()` from `../utils/logger.dart`.
+### Cells
+- Supported cells: Python and Flutter/Dart.
+- Python cells: lint with Ruff, format with Black, test with PyTest.
+- Flutter cells: `flutter analyze`, `flutter test`.
+- Keep cell code minimal and cohesive per directory.
 
 ### Milestones
-- Use `scripts/milestone_commit.sh "feat(standards): describe milestone"` at the end of each major task.
+- Use `scripts/milestone_commit.sh "feat(cells): describe milestone"` at the end of each major task.
 
 

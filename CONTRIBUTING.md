@@ -6,7 +6,7 @@
 - Keep edits small and focused.
 
 ### Standards
-- Code must pass CI: `cargo fmt`, `cargo clippy`, `cargo test`.
+- Code must pass CI: Rust (`cargo fmt`, `cargo clippy`, `cargo test`), Python (Ruff, Black, PyTest), Flutter (`flutter analyze`, `flutter test`).
 - Update docs for major changes (`ai/docs/*`, `README.md`).
 - Use checklists in PRs; all items must be checked.
 

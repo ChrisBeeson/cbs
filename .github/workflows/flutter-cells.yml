@@ -1,0 +1,33 @@
+name: Flutter Cells CI
+
+on:
+  pull_request:
+    paths:
+      - 'cells/flutter/**'
+      - '.github/workflows/flutter-cells.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cells/flutter/**'
+      - '.github/workflows/flutter-cells.yml'
+
+jobs:
+  analyze-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+      - name: Install deps
+        working-directory: cells/flutter
+        run: flutter pub get
+      - name: Analyze
+        working-directory: cells/flutter
+        run: flutter analyze
+      - name: Test
+        working-directory: cells/flutter
+        run: flutter test
+
+
