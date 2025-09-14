@@ -11,8 +11,14 @@ dependencies:
     sdk: flutter
   cbs_sdk:
     path: ../../../../shared_cells/dart/cbs_sdk
+  bus_monitor_cell:
+    path: ../bus_monitor
+  flow_text_cell:
+    path: ../flow_text
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  mockito: ^5.4.2
+  build_runner: ^2.4.7

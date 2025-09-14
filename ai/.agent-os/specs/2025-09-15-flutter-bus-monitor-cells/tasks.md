@@ -22,15 +22,15 @@
   - [x] 2.7 Apply visual effects (glow shadows, gradient underline, cyan theme)
   - [x] 2.8 Verify all tests pass for flow text cell
 
-- [ ] 3. Update Flow UI Cell Integration
-  - [ ] 3.1 Write tests for FlowUIWidget orchestration and cell composition
-  - [ ] 3.2 Update flow_ui cell pubspec.yaml with new cell dependencies
-  - [ ] 3.3 Refactor FlowUIWidget to integrate bus monitor and flow text cells
-  - [ ] 3.4 Implement split layout with Expanded flex widgets
-  - [ ] 3.5 Add interactive controls (toggle button with eye icons, clear messages button)
-  - [ ] 3.6 Apply dark theme consistency (#1A1A1A background, #00D4FF accents)
-  - [ ] 3.7 Implement message display with scrollable list and empty state
-  - [ ] 3.8 Verify all tests pass for flow UI integration
+- [x] 3. Update Flow UI Cell Integration
+  - [x] 3.1 Write tests for FlowUIWidget orchestration and cell composition
+  - [x] 3.2 Update flow_ui cell pubspec.yaml with new cell dependencies
+  - [x] 3.3 Refactor FlowUIWidget to integrate bus monitor and flow text cells
+  - [x] 3.4 Implement split layout with Expanded flex widgets
+  - [x] 3.5 Add interactive controls (toggle button with eye icons, clear messages button)
+  - [x] 3.6 Apply dark theme consistency (#1A1A1A background, #00D4FF accents)
+  - [x] 3.7 Implement message display with scrollable list and empty state
+  - [x] 3.8 Verify all tests pass for flow UI integration
 
 - [ ] 4. Implement Message Display and UI Features
   - [ ] 4.1 Write tests for color-coded message display and auto-scroll behavior
