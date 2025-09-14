@@ -132,8 +132,12 @@ dependencies = [
 name = "body"
 version = "0.1.0"
 dependencies = [
- "body_bus",
+ "async-trait",
  "body_core",
+ "greeter_rs",
+ "io_print_greeting_rs",
+ "io_prompt_name_rs",
+ "logic_greet_rs",
  "serde_json",
  "tokio",
 ]

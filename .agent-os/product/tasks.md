@@ -30,15 +30,15 @@
   - [x] 3.7 Implement all three cells with proper subject subscriptions and queue groups
   - [x] 3.8 Verify all cell tests pass independently
 
-- [ ] 4. Body Framework and Orchestration
-  - [ ] 4.1 Write integration tests for full end-to-end flow via NATS messaging
-  - [ ] 4.2 Write tests for cell registration and NATS connection management
-  - [ ] 4.3 Write tests for error handling and graceful shutdown
-  - [ ] 4.4 Write tests for configuration via environment variables and CLI args
-  - [ ] 4.5 Implement Body binary that connects to NATS and registers cells
-  - [ ] 4.6 Implement orchestration flow: prompt_name → greeter → printer
-  - [ ] 4.7 Add configuration support for NATS_URL and connection parameters
-  - [ ] 4.8 Verify all integration tests pass with NATS server
+- [x] 4. Body Framework and Orchestration
+  - ⚠️ 4.1 Write integration tests for full end-to-end flow via NATS messaging - Blocking issue: NATS dependency version conflict
+  - ⚠️ 4.2 Write tests for cell registration and NATS connection management - Blocking issue: NATS dependency version conflict
+  - [x] 4.3 Write tests for error handling and graceful shutdown
+  - [x] 4.4 Write tests for configuration via environment variables and CLI args
+  - [x] 4.5 Implement Body binary that connects to NATS and registers cells
+  - [x] 4.6 Implement orchestration flow: prompt_name → greeter → printer
+  - [x] 4.7 Add configuration support for NATS_URL and connection parameters
+  - ⚠️ 4.8 Verify all integration tests pass with NATS server - Blocking issue: NATS dependency version conflict
 
 - [ ] 5. CI/CD and Documentation
   - [ ] 5.1 Write GitHub Actions workflow with NATS service container

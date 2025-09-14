@@ -9,6 +9,10 @@ path = "src/main.rs"
 
 [dependencies]
 body_core = { path = "../body_core" }
-body_bus = { path = "../body_bus" }
+greeter_rs = { path = "../cells/examples/greeter_rs" }
+io_print_greeting_rs = { path = "../cells/examples/io_print_greeting_rs" }
+io_prompt_name_rs = { path = "../cells/examples/io_prompt_name_rs" }
+logic_greet_rs = { path = "../cells/examples/logic_greet_rs" }
 tokio = { workspace = true }
 serde_json = { workspace = true }
+async-trait = { workspace = true }
