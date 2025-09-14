@@ -1,5 +1,7 @@
-use async_nats::{Client, ConnectOptions, Error as NatsError};
+use async_nats::{Client, ConnectOptions};
+use async_trait::async_trait;
 use body_core::{BodyBus, BusError, Envelope, MessageHandler};
+use futures_util::StreamExt;
 use serde_json::Value;
 use std::sync::Arc;
 use std::time::Duration;
@@ -7,6 +9,7 @@ use tokio::sync::RwLock;
 use tokio::time::timeout;
 
 /// NATS-based implementation of the BodyBus trait
+#[derive(Debug)]
 pub struct NatsBus {
     client: Client,
     config: NatsBusConfig,
@@ -48,11 +51,7 @@ impl NatsBus {
     /// Create a new NATS bus with custom configuration
     pub async fn connect_with_config(config: NatsBusConfig) -> Result<Self, BusError> {
         let connect_options = ConnectOptions::new()
-            .connection_timeout(config.connection_timeout)
-            .max_reconnects(Some(config.max_reconnect_attempts))
-            .reconnect_delay_callback(|attempts| {
-                Duration::from_millis(500 * attempts as u64)
-            });
+            .connection_timeout(config.connection_timeout);
 
         let client = timeout(
             config.connection_timeout,
@@ -75,11 +74,8 @@ impl NatsBus {
     }
 
     /// Get server information
-    pub async fn server_info(&self) -> Result<async_nats::ServerInfo, BusError> {
-        self.client
-            .server_info()
-            .await
-            .ok_or_else(|| BusError::Connection("No server info available".to_string()))
+    pub fn server_info(&self) -> async_nats::ServerInfo {
+        self.client.server_info()
     }
 }
 
@@ -96,9 +92,13 @@ impl BodyBus for NatsBus {
         )
         .await
         .map_err(|_| BusError::Timeout)?
-        .map_err(|e| match e {
-            NatsError::NoResponders => BusError::NotFound("No subscribers for subject".to_string()),
-            _ => BusError::Connection(format!("NATS request failed: {}", e)),
+        .map_err(|e| {
+            let error_str = e.to_string();
+            if error_str.contains("no responders") {
+                BusError::NotFound("No subscribers for subject".to_string())
+            } else {
+                BusError::Connection(format!("NATS request failed: {}", e))
+            }
         })?;
 
         let response_envelope: Envelope = serde_json::from_slice(&response.payload)
@@ -130,10 +130,11 @@ impl BodyBus for NatsBus {
 
         let handlers_ref = Arc::clone(&self.handlers);
         let subject_for_handler = subject_owned.clone();
+        let client_ref = self.client.clone();
 
         let mut subscriber = self
             .client
-            .queue_subscribe(&subject_owned, &extract_queue_group(&subject_owned))
+            .queue_subscribe(subject_owned.clone(), extract_queue_group(&subject_owned))
             .await
             .map_err(|e| BusError::Connection(format!("Failed to subscribe: {}", e)))?;
 
@@ -185,8 +186,10 @@ impl BodyBus for NatsBus {
                 };
 
                 if let Ok(response_payload) = serde_json::to_vec(&response_envelope) {
-                    if let Err(e) = message.respond(response_payload.into()).await {
-                        eprintln!("Failed to send response: {}", e);
+                    if let Some(reply) = message.reply {
+                        if let Err(e) = client_ref.publish(reply, response_payload.into()).await {
+                            eprintln!("Failed to send response: {}", e);
+                        }
                     }
                 }
             }
