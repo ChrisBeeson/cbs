@@ -44,6 +44,12 @@ Clients treat any payload with `error` as failure. No mixed success + error.
 - Propagate `Envelope.id` as correlation id.
 - Emit spans for request start/end; tag with `service`, `verb`, `schema`.
 
+### Flutter Web App Init (UI Loading Contract)
+- The web `index.html` shows a cyan spinner until the Flutter app signals readiness.
+- The spinner hides when the document `body` has class `flutter-loaded`.
+- `applications/flutter_flow_web/lib/main.dart` adds `flutter-loaded` on web after the first frame, ensuring the overlay disappears and the `Flow` title renders.
+- If you customize the loader, preserve this contract or adjust the hook accordingly.
+
 ### References
 - See `ai/master_build_specs.md` §2 (Contracts), §7 (Testing), §11 (Extensibility).
 

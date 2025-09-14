@@ -135,5 +135,22 @@
 
   <!-- Flutter app will be injected here -->
   <script src="flutter_bootstrap.js" async></script>
+  <!-- Debug script to monitor flutter-loaded class -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, checking for flutter-loaded class...');
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            console.log('Body class changed:', document.body.className);
+            if (document.body.classList.contains('flutter-loaded')) {
+              console.log('flutter-loaded class detected, spinner should hide.');
+            }
+          }
+        });
+      });
+      observer.observe(document.body, { attributes: true });
+    });
+  </script>
 </body>
 </html>

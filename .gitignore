@@ -16,4 +16,13 @@ node_modules/
 .env
 .env.*
 
+# Flutter/Dart
+**/.dart_tool/
+**/build/
+**/*.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
 
