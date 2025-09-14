@@ -9,13 +9,18 @@ path = "src/main.rs"
 
 [dependencies]
 body_core = { path = "../body_core" }
-greeter_rs = { path = "../cells/examples/greeter_rs" }
-io_print_greeting_rs = { path = "../cells/examples/io_print_greeting_rs" }
-io_prompt_name_rs = { path = "../cells/examples/io_prompt_name_rs" }
-logic_greet_rs = { path = "../cells/examples/logic_greet_rs" }
+web_server = { path = "../shared_cells/rust/web_server" }
+greeter_rs = { path = "../applications/cli_greeter/cells/greeter_rs" }
+io_print_greeting_rs = { path = "../applications/cli_greeter/cells/io_print_greeting_rs" }
+io_prompt_name_rs = { path = "../applications/cli_greeter/cells/io_prompt_name_rs" }
+logic_greet_rs = { path = "../applications/cli_greeter/cells/logic_greet_rs" }
 tokio = { workspace = true }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
+serde_yaml = "0.9"
+
+[dev-dependencies]
+tempfile = "3.8"
 
 # Note: body_bus with NATS disabled due to Rust version compatibility
 # body_bus = { path = "../body_bus" }

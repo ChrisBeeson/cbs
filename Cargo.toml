@@ -4,10 +4,11 @@ members = [
     "body",
     "body_core",
     "body_bus",
-    "cells/examples/greeter_rs",
-    "cells/examples/io_prompt_name_rs", 
-    "cells/examples/logic_greet_rs",
-    "cells/examples/io_print_greeting_rs"
+    "applications/cli_greeter/cells/greeter_rs",
+    "applications/cli_greeter/cells/io_prompt_name_rs", 
+    "applications/cli_greeter/cells/logic_greet_rs",
+    "applications/cli_greeter/cells/io_print_greeting_rs",
+    "shared_cells/rust/web_server"
 ]
 
 [workspace.dependencies]

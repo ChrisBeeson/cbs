@@ -1,0 +1,17 @@
+name: cli_greeter
+version: 1.0.0
+description: CLI Greeter Application - interactive greeting system using CBS cells
+cells:
+  - name: greeter_rs
+    path: cells/greeter_rs
+    dependencies: []
+  - name: io_print_greeting_rs
+    path: cells/io_print_greeting_rs
+    dependencies: []
+  - name: io_prompt_name_rs
+    path: cells/io_prompt_name_rs
+    dependencies: []
+  - name: logic_greet_rs
+    path: cells/logic_greet_rs
+    dependencies: []
+shared_cells: []

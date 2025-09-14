@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    Flutter Flow Web Application
+    CBS-powered Flutter web app that displays "Flow" centered
+  -->
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Flutter Flow Web Application - CBS-powered web app">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Flutter Flow Web">
+
+  <title>Flutter Flow Web</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* CSS Reset and Base Styles */
+    * {
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
+                   'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 
+                   sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #1A1A1A;
+      color: #FFFFFF;
+    }
+    
+    /* Loading Screen */
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, #1A1A1A 0%, #2A2A2A 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      text-align: center;
+    }
+    
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(0, 212, 255, 0.3);
+      border-top: 3px solid #00D4FF;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 24px;
+    }
+    
+    .loading-text {
+      color: #00D4FF;
+      font-size: 18px;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .loading-spinner {
+        width: 36px;
+        height: 36px;
+        border-width: 2px;
+      }
+      
+      .loading-text {
+        font-size: 16px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .loading-text {
+        font-size: 14px;
+        padding: 0 20px;
+      }
+    }
+    
+    /* Cross-browser compatibility */
+    @supports (-webkit-appearance: none) {
+      body {
+        -webkit-text-size-adjust: 100%;
+      }
+    }
+    
+    @supports (-moz-appearance: none) {
+      body {
+        -moz-text-size-adjust: 100%;
+      }
+    }
+    
+    /* Hide loading once Flutter loads */
+    .flutter-loaded #loading {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+    }
+    
+    /* Flutter app container */
+    flt-glass-pane {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading indicator -->
+  <div id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading Flutter Flow...</div>
+  </div>
+
+  <!-- Flutter app will be injected here -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

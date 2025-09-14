@@ -1,4 +1,4 @@
-use body_core::{BodyBus, BusError, Cell, Envelope};
+use body_core::{AppLoader, BodyBus, BusError, Cell, Envelope};
 use serde_json::json;
 use std::env;
 use std::process;
@@ -11,12 +11,16 @@ use io_print_greeting_rs::PrinterCell;
 use io_prompt_name_rs::PromptNameCell;
 use logic_greet_rs::GreeterCell as LogicGreeterCell;
 
+// Import web server
+use web_server;
+
 /// Configuration for the Body framework
 #[derive(Debug, Clone)]
 pub struct BodyConfig {
     pub nats_url: String,
     pub use_mock_bus: bool,
     pub demo_mode: bool,
+    pub app_name: Option<String>,
 }
 
 impl Default for BodyConfig {
@@ -25,6 +29,7 @@ impl Default for BodyConfig {
             nats_url: "nats://localhost:4222".to_string(),
             use_mock_bus: false,
             demo_mode: false,
+            app_name: None,
         }
     }
 }
@@ -56,6 +61,11 @@ impl BodyConfig {
                         config.nats_url = url.clone();
                     }
                 }
+                "--app" => {
+                    if let Some(app_name) = args.get(i + 1) {
+                        config.app_name = Some(app_name.clone());
+                    }
+                }
                 "--demo" => {
                     config.demo_mode = true;
                 }
@@ -82,6 +92,7 @@ fn print_help() {
     println!("    body [OPTIONS]");
     println!();
     println!("OPTIONS:");
+    println!("    --app <NAME>        Load specific application from applications/ directory");
     println!("    --nats-url <URL>    NATS server URL (default: nats://localhost:4222)");
     println!("    --demo              Run in demo mode with simulated input");
     println!("    --mock-bus          Use mock bus instead of NATS (for testing)");
@@ -130,11 +141,13 @@ impl BodyBus for MockBus {
 /// Main Body orchestrator
 pub struct Body {
     config: BodyConfig,
+    app_loader: AppLoader,
 }
 
 impl Body {
     pub fn new(config: BodyConfig) -> Self {
-        Self { config }
+        let app_loader = AppLoader::new("./applications");
+        Self { config, app_loader }
     }
     
     /// Run the CBS demo flow
@@ -142,11 +155,82 @@ impl Body {
         println!("🧬 Cell Body System (CBS) - MVP Demo");
         println!("=====================================");
         
-        if self.config.demo_mode {
+        // Handle application loading if --app parameter provided
+        if let Some(app_name) = &self.config.app_name {
+            self.run_application(app_name).await
+        } else if self.config.demo_mode {
             self.run_demo_mode().await
         } else {
             self.run_interactive_mode().await
         }
+    }
+    
+    /// Run a specific application
+    async fn run_application(&self, app_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        println!("🚀 Loading application: {}", app_name);
+        
+        // Discover available applications
+        let available_apps = self.app_loader.discover_applications()?;
+        println!("📦 Available applications: {:?}", available_apps);
+        
+        if !available_apps.contains(&app_name.to_string()) {
+            return Err(format!("Application '{}' not found. Available: {:?}", app_name, available_apps).into());
+        }
+        
+        // Load application configuration
+        let app_config = self.app_loader.load_application(app_name)?;
+        println!("📋 Loaded configuration for '{}' v{}", app_config.name, app_config.version);
+        println!("    Description: {}", app_config.description);
+        println!("    Cells: {}", app_config.cells.len());
+        println!("    Shared cells: {}", app_config.shared_cells.len());
+        
+        match app_name {
+            "flutter_flow_web" => self.run_flutter_flow_web_app(&app_config).await,
+            "cli_greeter" => self.run_cli_greeter_app(&app_config).await,
+            _ => {
+                println!("⚠️  Application '{}' is configured but not yet implemented", app_name);
+                println!("    Configuration loaded successfully:");
+                for cell in &app_config.cells {
+                    println!("      - {} ({})", cell.name, cell.path);
+                }
+                Ok(())
+            }
+        }
+    }
+    
+    /// Run the Flutter Flow Web application
+    async fn run_flutter_flow_web_app(&self, app_config: &body_core::AppConfig) -> Result<(), Box<dyn std::error::Error>> {
+        println!("🌐 Starting Flutter Flow Web Application...");
+        
+        // Set up web server configuration
+        let web_dir = format!("./applications/{}/web", app_config.name);
+        let web_config = web_server::WebServerConfig {
+            static_dir: std::path::PathBuf::from(&web_dir),
+            port: 8080,
+            enable_cors: true,
+        };
+        
+        let web_server_cell = web_server::WebServerCell::new(web_config);
+        
+        println!("📁 Serving static files from: {}", web_dir);
+        println!("🌐 Starting web server on http://localhost:8080");
+        
+        // Start the web server
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
+        println!("✅ Flutter Flow Web application is running!");
+        println!("   Open your browser to: http://localhost:8080");
+        println!("   Press Ctrl+C to stop");
+        
+        web_server_cell.serve(listener).await?;
+        
+        Ok(())
+    }
+    
+    /// Run the CLI Greeter application
+    async fn run_cli_greeter_app(&self, _app_config: &body_core::AppConfig) -> Result<(), Box<dyn std::error::Error>> {
+        println!("💬 Starting CLI Greeter Application...");
+        // Fall back to existing interactive mode for cli_greeter
+        self.run_interactive_mode().await
     }
     
     /// Run in demo mode with simulated input
@@ -221,6 +305,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  NATS URL: {}", config.nats_url);
     println!("  Demo Mode: {}", config.demo_mode);
     println!("  Mock Bus: {}", config.use_mock_bus);
+    if let Some(app_name) = &config.app_name {
+        println!("  Application: {}", app_name);
+    }
     println!();
     
     let body = Body::new(config);

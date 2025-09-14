@@ -1,0 +1,26 @@
+name: flutter_flow_web
+description: Flutter Flow Web Application - displays "Flow" centered on webpage using CBS cells
+version: 1.0.0+1
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.1.0
+  web_socket_channel: ^2.4.0
+  cbs_sdk:
+    path: ../../shared_cells/dart/cbs_sdk
+  flow_ui_cell:
+    path: cells/flow_ui
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_web_compilers: ^4.0.0
+
+flutter:
+  uses-material-design: true

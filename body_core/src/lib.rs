@@ -4,6 +4,9 @@ use serde_json::Value;
 use thiserror::Error;
 use uuid::Uuid;
 
+pub mod app_loader;
+pub use app_loader::{AppConfig, AppLoadError, AppLoader, CellConfig};
+
 /// Envelope represents a typed message in the CBS system
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Envelope {
