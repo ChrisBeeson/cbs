@@ -1,6 +1,6 @@
 # Improved Folder Structure - Self-Contained Applications
 
-This document proposes a cleaner folder structure where each application is completely self-contained in its own directory.
+This proposes a structure where each application is fully self-contained.
 
 ## Proposed Directory Structure
 
@@ -9,54 +9,42 @@ cbs/
 ├── Cargo.toml                     # workspace
 ├── body_core/                     # shared contracts/interfaces
 │   └── src/lib.rs
-├── body_bus/                      # shared message bus
+├── body_bus/                      # message bus
 │   └── src/lib.rs
-├── body/                          # main framework binary
+├── body/                          # main framework
 │   ├── src/
 │   │   ├── main.rs
-│   │   └── config.rs              # Application loading logic
+│   │   └── config.rs              # Application loading
 │   └── Cargo.toml
-├── shared_cells/                  # Reusable cells across applications
+├── shared_cells/                  # Reusable cells
 │   ├── rust/
-│   │   └── web_server/            # HTTP server cell
+│   │   └── web_server/
 │   │       ├── SPEC.md
 │   │       ├── Cargo.toml
 │   │       └── src/lib.rs
 │   └── dart/
-│       └── cbs_sdk/               # Dart CBS SDK
-└── applications/                  # Self-contained applications
-    ├── cli_greeter/               # CLI Greeter Application
-    │   ├── app.yaml               # Application configuration
-    │   ├── README.md              # Application documentation
-    │   ├── Cargo.toml             # Application workspace
-    │   └── cells/                 # Application-specific cells
+│       └── cbs_sdk/
+└── applications/                  # Self-contained apps
+    ├── cli_greeter/
+    │   ├── app.yaml
+    │   ├── README.md
+    │   ├── Cargo.toml
+    │   └── cells/
     │       ├── io_prompt_name/
-    │       │   ├── SPEC.md
-    │       │   ├── Cargo.toml
-    │       │   └── src/lib.rs
     │       ├── logic_greet/
-    │       │   ├── SPEC.md
-    │       │   ├── Cargo.toml
-    │       │   └── src/lib.rs
     │       └── io_print_greeting/
-    │           ├── SPEC.md
-    │           ├── Cargo.toml
-    │           └── src/lib.rs
-    └── flutter_flow_web/          # Flutter Flow Web Application
-        ├── app.yaml               # Application configuration
-        ├── README.md              # Application documentation
-        ├── pubspec.yaml           # Flutter dependencies
-        ├── web/                   # Flutter web build output
+    └── flutter_flow_web/
+        ├── app.yaml
+        ├── README.md
+        ├── pubspec.yaml
+        ├── web/
         │   └── index.html
-        └── cells/                 # Application-specific cells
-            ├── flow_ui/           # Flutter UI cell
+        └── cells/
+            ├── flow_ui/
             │   ├── SPEC.md
             │   ├── pubspec.yaml
-            │   ├── lib/
-            │   │   └── flow_ui.dart
-            │   └── web/
-            │       └── index.html
-            └── api_bridge/        # HTTP/WebSocket bridge cell
+            │   └── lib/flow_ui.dart
+            └── api_bridge/
                 ├── SPEC.md
                 ├── Cargo.toml
                 └── src/lib.rs
@@ -64,7 +52,7 @@ cbs/
 
 ## Application Configuration Format
 
-### CLI Greeter App (`applications/cli_greeter/app.yaml`)
+### CLI Greeter (`applications/cli_greeter/app.yaml`)
 ```yaml
 application:
   name: cli_greeter
@@ -80,20 +68,17 @@ cells:
   - id: io_prompt_name
     path: ./cells/io_prompt_name
     language: rust
-    
   - id: logic_greet
     path: ./cells/logic_greet
     language: rust
     dependencies:
       - io_prompt_name
-    
   - id: io_print_greeting
     path: ./cells/io_print_greeting
     language: rust
     dependencies:
       - logic_greet
 
-# Optional: Reference shared cells
 shared_cells:
   - id: web_server
     path: ../../shared_cells/rust/web_server
@@ -111,12 +96,12 @@ flows:
         action: write
 ```
 
-### Flutter Flow Web App (`applications/flutter_flow_web/app.yaml`)
+### Flutter Flow Web (`applications/flutter_flow_web/app.yaml`)
 ```yaml
 application:
   name: flutter_flow_web
   version: 0.1.0
-  description: Flutter web application displaying 'Flow' text
+  description: Flutter web application displaying 'Flow'
   type: web
 
 runtime:
@@ -132,7 +117,6 @@ cells:
     config:
       title: "Flow"
       theme: "minimal"
-      
   - id: api_bridge
     path: ./cells/api_bridge
     language: rust
@@ -140,7 +124,6 @@ cells:
       cors_enabled: true
       websocket_enabled: true
 
-# Use shared web server cell
 shared_cells:
   - id: web_server
     path: ../../shared_cells/rust/web_server
@@ -164,54 +147,28 @@ flows:
 ## Command Line Usage
 
 ```bash
-# Run CLI greeter application
 cargo run -p body -- --app applications/cli_greeter
-
-# Run Flutter web application
 cargo run -p body -- --app applications/flutter_flow_web
-
-# List available applications
 cargo run -p body -- --list-apps
-
-# Validate application configuration
 cargo run -p body -- --app applications/flutter_flow_web --validate
 ```
 
-## Benefits of This Structure
+## Benefits
 
-### 1. **Complete Isolation**
-- Each application is completely self-contained
-- No mixing of application-specific code
-- Clear ownership and responsibility boundaries
+1. **Isolation**: Each app is self-contained; clear ownership.
+2. **Management**: Add/remove apps by folder; easy discovery.
+3. **Sharing**: `shared_cells/` for reuse across apps.
+4. **Workflow**: Per-app docs, tests, config, versioning.
+5. **Build**: Per-app manifests and build scripts.
 
-### 2. **Easy Application Management**
-- Simple to add new applications: create new folder under `applications/`
-- Easy to remove applications: delete the folder
-- Clear application discovery: list folders in `applications/`
+## Application Workspace Examples
 
-### 3. **Shared Resource Management**
-- Common cells in `shared_cells/` can be reused across applications
-- Clear distinction between shared and application-specific components
-- Version management per application
-
-### 4. **Development Workflow**
-- Developers can focus on one application at a time
-- Each application can have its own documentation, tests, and configuration
-- Independent versioning and deployment
-
-### 5. **Build System Integration**
-- Each application can have its own `Cargo.toml` or `pubspec.yaml`
-- Application-specific build scripts and configurations
-- Clean dependency management
-
-## Application Workspace Structure
-
-### CLI Greeter Application Cargo.toml
+### CLI Greeter `Cargo.toml`
 ```toml
 [workspace]
 members = [
     "cells/io_prompt_name",
-    "cells/logic_greet", 
+    "cells/logic_greet",
     "cells/io_print_greeting"
 ]
 
@@ -222,7 +179,7 @@ serde_json = "1.0"
 async-trait = "0.1"
 ```
 
-### Flutter Flow Web Application pubspec.yaml
+### Flutter Flow Web `pubspec.yaml`
 ```yaml
 name: flutter_flow_web
 description: Flutter Flow web application
@@ -247,38 +204,29 @@ flutter:
 
 ## Migration Strategy
 
-### Phase 1: Restructure Existing Code
-1. Create `applications/cli_greeter/` directory
-2. Move existing example cells to `applications/cli_greeter/cells/`
-3. Create `applications/cli_greeter/app.yaml` configuration
-4. Update body to load from application directories
+### Phase 1: Restructure
+1. Create `applications/cli_greeter/`
+2. Move example cells under `applications/cli_greeter/cells/`
+3. Create `applications/cli_greeter/app.yaml`
+4. Update body to load from app directories
 
-### Phase 2: Create Flutter Application
-1. Create `applications/flutter_flow_web/` directory
-2. Implement Flutter cells in `applications/flutter_flow_web/cells/`
-3. Create shared web server cell in `shared_cells/rust/web_server/`
-4. Implement application configuration loading
+### Phase 2: Create Flutter App
+1. Create `applications/flutter_flow_web/`
+2. Implement Flutter cells under `applications/flutter_flow_web/cells/`
+3. Create `shared_cells/rust/web_server/`
+4. Implement config loading
 
-### Phase 3: Enhance Application Management
-1. Add application discovery and listing
-2. Implement configuration validation
-3. Add application templates for easy creation
-4. Create development tools and scripts
+### Phase 3: Enhance Management
+1. App discovery/listing
+2. Config validation
+3. App templates
+4. Dev tools and scripts
 
 ## Application Template
 
-To make creating new applications easy, we can provide a template generator:
-
 ```bash
-# Create new application from template
 cargo run -p body -- --new-app my_new_app --template web
-
-# This would create:
-applications/my_new_app/
-├── app.yaml              # Template configuration
-├── README.md             # Template documentation  
-├── cells/                # Empty cells directory
-└── pubspec.yaml          # If web/flutter template
+# creates applications/my_new_app/ with app.yaml, README.md, cells/, pubspec.yaml (if web)
 ```
 
-This structure makes the CBS system much more organized and maintainable while preserving the core architectural principles of cell isolation and message bus communication.
+This structure keeps CBS organized and maintainable while preserving cell isolation and bus communication.

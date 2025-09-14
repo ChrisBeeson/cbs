@@ -1,11 +1,11 @@
 # API Specification
 
-This is the API specification for the spec detailed in @.agent-os/specs/2025-09-14-flutter-flow-web-app/spec.md
+API spec for `@.agent-os/specs/2025-09-14-flutter-flow-web-app/spec.md`.
 
 ## Endpoints
 
 ### GET /api/health
-**Purpose:** Health check endpoint for CBS system status
+**Purpose:** Health check
 **Parameters:** None
 **Response:** 
 ```json
@@ -15,11 +15,11 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-09-
   "version": "0.1.0"
 }
 ```
-**Errors:** 
-- 503 Service Unavailable: System is starting up or shutting down
+**Errors:**
+- 503 Service Unavailable
 
 ### POST /api/cbs/request
-**Purpose:** Send CBS envelope request to the message bus
+**Purpose:** Send CBS envelope request to bus
 **Parameters:** 
 - Body: CBS Envelope JSON
 ```json
@@ -43,13 +43,13 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-09-
 }
 ```
 **Errors:**
-- 400 Bad Request: Invalid envelope format
-- 404 Not Found: No handler for specified service/verb
-- 408 Request Timeout: Handler did not respond within timeout
-- 500 Internal Server Error: Handler execution failed
+- 400 Bad Request
+- 404 Not Found
+- 408 Request Timeout
+- 500 Internal Server Error
 
 ### GET /api/cbs/subjects
-**Purpose:** List all registered CBS subjects and their handlers
+**Purpose:** List registered CBS subjects
 **Parameters:** None
 **Response:**
 ```json
@@ -64,11 +64,11 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-09-
 }
 ```
 **Errors:**
-- 500 Internal Server Error: Failed to retrieve subject list
+- 500 Internal Server Error
 
 ### WebSocket /ws/cbs
-**Purpose:** Real-time bidirectional communication with CBS message bus
-**Protocol:** WebSocket with JSON message format
+**Purpose:** Real-time bidirectional communication
+**Protocol:** WebSocket JSON
 **Message Format:**
 ```json
 {
@@ -83,14 +83,14 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-09-
 }
 ```
 **Connection Flow:**
-1. Client establishes WebSocket connection
-2. Client sends request messages
-3. Server processes via CBS message bus
-4. Server sends response messages
-5. Connection maintained for real-time updates
+1. Client connects
+2. Client sends requests
+3. Server routes via CBS bus
+4. Server sends responses
+5. Connection stays open for updates
 
 ### GET /api/config/body-spec
-**Purpose:** Retrieve current body specification configuration
+**Purpose:** Retrieve current body spec config
 **Parameters:** None
 **Response:**
 ```json
@@ -107,12 +107,12 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-09-
 }
 ```
 **Errors:**
-- 500 Internal Server Error: Failed to read configuration
+- 500 Internal Server Error
 
 ### PUT /api/config/body-spec
-**Purpose:** Update body specification configuration and reload application
+**Purpose:** Update body spec config and reload
 **Parameters:**
-- Body: Body spec configuration JSON
+- Body: Body spec JSON
 ```json
 {
   "application_name": "string",
@@ -134,66 +134,29 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-09-
 }
 ```
 **Errors:**
-- 400 Bad Request: Invalid configuration format
-- 422 Unprocessable Entity: Configuration validation failed
-- 500 Internal Server Error: Failed to apply configuration
+- 400 Bad Request
+- 422 Unprocessable Entity
+- 500 Internal Server Error
 
 ## Controllers
 
 ### HealthController
-**Actions:**
-- `health_check`: Returns system status and version information
-**Business Logic:** 
-- Check CBS message bus connectivity
-- Validate all registered cells are responsive
-- Return aggregated health status
-**Error Handling:**
-- Graceful degradation when components are unavailable
-- Detailed error messages for debugging
+- `health_check`: Returns system status and version
+- Checks bus connectivity and cell responsiveness
 
 ### CBSController  
-**Actions:**
-- `request`: Process CBS envelope requests
-- `list_subjects`: Return registered subjects and handlers
-**Business Logic:**
-- Validate envelope format and required fields
-- Route requests to appropriate message bus handlers
-- Handle timeouts and error responses
-- Maintain request/response correlation
-**Error Handling:**
-- Envelope validation with detailed error messages
-- Timeout handling with configurable limits
-- Error envelope generation for failed requests
+- `request`: Process envelope requests
+- `list_subjects`: Return subjects/handlers
+- Validates envelopes; routes; handles timeouts/errors
 
 ### WebSocketController
-**Actions:**
-- `handle_connection`: Manage WebSocket connections
-- `process_message`: Handle incoming WebSocket messages
-- `broadcast_response`: Send responses to connected clients
-**Business Logic:**
-- Maintain client connection registry
-- Route messages through CBS message bus
-- Handle connection lifecycle (connect/disconnect)
-- Support real-time bidirectional communication
-**Error Handling:**
-- Connection error recovery
-- Message format validation
-- Graceful connection termination
+- `handle_connection`, `process_message`, `broadcast_response`
+- Manages connections and routes via bus
 
 ### ConfigController
-**Actions:**
-- `get_body_spec`: Retrieve current configuration
-- `update_body_spec`: Update and reload configuration
-**Business Logic:**
-- Read/write body spec YAML files
-- Validate configuration schema
-- Trigger cell reload process
-- Maintain configuration versioning
-**Error Handling:**
-- Configuration validation with detailed errors
-- Rollback on failed configuration updates
-- Safe reload with fallback to previous configuration
+- `get_body_spec`, `update_body_spec`
+- Reads/writes YAML; validates; triggers reload; versioning; rollback on failure
 
 ## Purpose
 
-These API endpoints enable Flutter web applications to integrate seamlessly with the CBS message bus architecture. The HTTP endpoints provide standard request/response patterns, while WebSocket support enables real-time communication for interactive applications. The configuration endpoints allow dynamic application switching without system restarts, supporting the core requirement of configurable CBS applications.
+These endpoints let Flutter web apps integrate with CBS. HTTP covers request/response; WebSocket covers real-time. Config endpoints support dynamic app switching without restarts.

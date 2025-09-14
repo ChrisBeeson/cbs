@@ -1,6 +1,6 @@
 # Master Build Specs Updates
 
-This document outlines the necessary updates to the CBS Master Build Specs to support multiple applications and Flutter web integration.
+This document lists updates to the CBS Master Build Specs to support multi-app and Flutter web integration.
 
 ## Section Updates Required
 
@@ -16,40 +16,40 @@ This document outlines the necessary updates to the CBS Master Build Specs to su
 ## 1) High-Level Architecture
 
 * **Body (binary crate)**: creates **NATS connection**; loads cells from **body spec configuration**; orchestrates flows; exposes control APIs and **web server**.
-* **Body Bus (lib crate)**: NATS-based message router with subject-based routing. Contract-driven, typed envelope.
-* **Cells (lib crates)**: single responsibility; subscribe to NATS subjects; publish responses. **Support Rust, Dart, and Python**.
-* **Organs**: logical namespaces (e.g., `io.*`, `logic.*`, `ui.*`) mapped to NATS subject hierarchies.
-* **Applications**: configured via **body spec YAML files** that define which cells to load and how they connect.
+* **Body Bus (lib crate)**: NATS message router with subject-based routing; typed envelope.
+* **Cells (lib crates)**: single responsibility; subscribe to subjects; publish responses. Support Rust, Dart, Python.
+* **Organs**: logical namespaces (e.g., `io.*`, `logic.*`, `ui.*`).
+* **Applications**: configured via YAML body spec files defining cells and connections.
 
 **Application Examples:**
 
 1. **CLI Greeter App**: 3 cells
-   - `io.prompt_name`: read name from stdin → `Name`
-   - `logic.greet`: `Name` → `Greeting` 
+   - `io.prompt_name`: read name → `Name`
+   - `logic.greet`: `Name` → `Greeting`
    - `io.print_greeting`: `Greeting` → stdout
 
 2. **Flutter Flow Web App**: 2 cells
-   - `ui.flutter_flow`: render "Flow" web page → `HTML`
-   - `web.server`: serve HTTP requests → web responses
+   - `ui.flutter_flow`: render "Flow" → `HTML`
+   - `web.server`: serve HTTP requests
 ```
 
 ### Section 3: Language Strategy Updates
 
-**Addition to Existing Content:**
+**Addition:**
 ```markdown
 ### 3.1 Flutter Web Integration
 
-**Flutter Web Cells**: Dart-based cells that compile to JavaScript for web deployment:
-- **Compilation**: Flutter web compilation integrated into CBS build system
-- **Communication**: HTTP/WebSocket bridge between Flutter UI and CBS message bus
-- **Deployment**: Static web assets served by CBS web server cells
-- **Development**: Hot reload support for rapid Flutter development within CBS
+**Flutter Web Cells**: Dart cells compiled to JS for web deployment:
+- **Compilation**: Flutter web compilation integrated into CBS build
+- **Communication**: HTTP/WebSocket bridge between Flutter UI and CBS bus
+- **Deployment**: Static web assets served by web server cells
+- **Development**: Hot reload for Flutter within CBS
 
 **Web Application Architecture**:
-- **Frontend**: Flutter web cells handle UI rendering and user interactions
-- **Backend**: Rust cells handle business logic, data processing, and system integration
-- **Bridge**: HTTP API and WebSocket connections enable seamless communication
-- **Deployment**: Single CBS body serves both web assets and API endpoints
+- **Frontend**: Flutter cells render UI and handle interactions
+- **Backend**: Rust cells handle logic and integration
+- **Bridge**: HTTP API and WebSocket connect layers
+- **Deployment**: Single CBS body serves assets and API
 ```
 
 ### Section 4: Repository Layout Updates
@@ -61,19 +61,19 @@ This document outlines the necessary updates to the CBS Master Build Specs to su
 ```
 cbs/
 ├─ Cargo.toml                    # workspace
-├─ body/                         # binary: Body (main framework)
+├─ body/                         # Body (main framework)
 │  ├─ src/
 │  │  ├─ main.rs
-│  │  ├─ config.rs               # Body spec configuration loading
+│  │  ├─ config.rs               # Body spec configuration
 │  │  └─ web_server.rs           # Web server for Flutter apps
 │  └─ tests/integration.rs
-├─ body_core/                    # contracts/interfaces shared
+├─ body_core/                    # contracts/interfaces
 │  └─ src/lib.rs
-├─ body_bus/                     # message bus implementation
+├─ body_bus/                     # message bus
 │  └─ src/lib.rs
 ├─ apps/                         # Application configurations
-│  ├─ cli_greeter_app.yaml       # CLI greeter configuration
-│  ├─ flutter_flow_web_app.yaml  # Flutter web app configuration
+│  ├─ cli_greeter_app.yaml
+│  ├─ flutter_flow_web_app.yaml
 │  └─ body_spec.yaml             # Default configuration
 └─ cells/
    ├─ examples/                  # Rust example cells
@@ -83,36 +83,36 @@ cbs/
    │  └─ io_print_greeting_rs/
    ├─ flutter/                   # Flutter/Dart cells
    │  ├─ ui/
-   │  │  └─ flow_ui/             # Flow display cell
+   │  │  └─ flow_ui/
    │  └─ web/
-   │     └─ server/              # Web server cell
+   │     └─ server/
    ├─ rust/                      # Additional Rust cells
    │  └─ web/
-   │     └─ server/              # HTTP server cell
+   │     └─ server/
    └─ python/                    # Python cells (future)
 ```
 ```
 
 ### Section 5: Crate Contracts Updates
 
-**New Section 5.5:**
+**New 5.5:**
 ```markdown
 ### 5.5 `body` Configuration System
 
-* **Purpose**: Dynamic application loading via YAML configuration files.
-* **Config Loading**: Parse body spec YAML, validate cell references, load specified cells.
+* **Purpose**: Dynamic application loading via YAML.
+* **Config Loading**: Parse YAML, validate cell references, load cells.
 * **Behavior**:
-  * Read configuration from `--app` flag, environment variable, or default `body_spec.yaml`
-  * Validate cell paths and dependencies exist
-  * Load and register cells in dependency order
-  * Start web server if Flutter cells are present
-  * Support configuration hot reloading (future)
+  * Read config from `--app`, env var, or default `body_spec.yaml`
+  * Validate paths/dependencies
+  * Load/register in dependency order
+  * Start web server if Flutter cells present
+  * Hot reload (future)
 
 * **Tests**:
-  * Configuration parsing and validation
-  * Cell loading with valid and invalid paths
-  * Dependency resolution and ordering
-  * Application switching between different configurations
+  * Parsing/validation
+  * Load with valid/invalid paths
+  * Dependency ordering
+  * App switching
 ```
 
 ### Section 8: Acceptance Criteria Updates
@@ -122,24 +122,24 @@ cbs/
 ## 8) Acceptance Criteria (MVP+)
 
 **CLI Application:**
-* **Prerequisites**: NATS server running on `localhost:4222` (or configured URL).
-* `cargo run -p body -- --app apps/cli_greeter_app.yaml` prompts for name and prints `Hello <name>!` via NATS messaging.
+* Prereq: NATS server on `localhost:4222` (or configured)
+* `cargo run -p body -- --app apps/cli_greeter_app.yaml` prompts and prints `Hello <name>!`
 
 **Flutter Web Application:**
-* `cargo run -p body -- --app apps/flutter_flow_web_app.yaml` starts web server and serves Flutter app.
-* Navigating to `http://localhost:8080` displays "Flow" centered on the page.
-* Flutter cells communicate with CBS backend via HTTP/WebSocket bridge.
+* `cargo run -p body -- --app apps/flutter_flow_web_app.yaml` starts web server
+* `http://localhost:8080` displays "Flow" centered
+* Flutter cells talk to CBS via HTTP/WebSocket bridge
 
 **Application Switching:**
-* Switching between configurations requires no code changes, only configuration file updates.
-* `cargo run -p body -- --app <different_config.yaml>` loads completely different application.
+* No code changes; config-only
+* `cargo run -p body -- --app <config.yaml>` loads different app
 
-**General Requirements:**
-* All tests pass (`cargo test --workspace`) with NATS server available.
-* Lints clean (`fmt`/`clippy` pass).
-* Cells communicate **only** via NATS subjects or HTTP/WebSocket bridge.
-* Adding/removing a cell requires **no** changes to others.
-* **Distributed ready**: cells can run on separate processes/machines.
+**General:**
+* `cargo test --workspace` passes with NATS available
+* `fmt`/`clippy` clean
+* Cells communicate only via NATS or bridge
+* Cells are independently add/remove-able
+* Distributed-ready: cells can run separately
 ```
 
 ### New Section 15: Application Configuration
@@ -149,9 +149,9 @@ cbs/
 
 ### 15.1 Body Spec Format
 
-CBS applications are defined using YAML configuration files that specify which cells to load and how they connect.
+YAML defines which cells to load and how they connect.
 
-**Configuration Structure:**
+**Structure:**
 ```yaml
 application_name: string
 version: string
@@ -174,13 +174,8 @@ flows:
 
 **Command Line:**
 ```bash
-# Load Flutter web app
 cargo run -p body -- --app apps/flutter_flow_web_app.yaml
-
-# Load CLI greeter app  
 cargo run -p body -- --app apps/cli_greeter_app.yaml
-
-# Use default configuration
 cargo run -p body
 ```
 
@@ -192,24 +187,19 @@ cargo run -p body
 
 ### 15.3 Configuration Validation
 
-* Schema validation for all configuration files
-* Cell path and dependency validation
+* Schema validation
+* Path/dependency validation
 * Circular dependency detection
 * Missing cell error reporting
-* Configuration hot reloading support (future)
+* Hot reload (future)
 
 ### 15.4 Pre-built Applications
 
-**CLI Greeter App (`apps/cli_greeter_app.yaml`):**
-- Traditional CLI application with stdin/stdout interaction
-- Demonstrates basic CBS cell communication patterns
-- Uses existing Rust cells: prompt_name, logic_greet, print_greeting
+**CLI Greeter**
+- stdin/stdout demo with Rust cells
 
-**Flutter Flow Web App (`apps/flutter_flow_web_app.yaml`):**
-- Modern web application displaying "Flow" text
-- Demonstrates Flutter web integration with CBS
-- Uses Flutter UI cells and Rust web server cells
-- Accessible via web browser at configured port
+**Flutter Flow Web**
+- Displays "Flow"; Flutter + Rust web server; browser-accessible
 ```
 
 ### New Section 16: Web Application Support
@@ -219,79 +209,72 @@ cargo run -p body
 
 ### 16.1 Flutter Web Integration
 
-CBS supports Flutter web applications through a bridge architecture that connects Flutter UI cells to the CBS message bus.
+Bridge connects Flutter UI cells to CBS bus.
 
 **Components:**
-* **Flutter Cells**: Dart-based cells that compile to JavaScript for web deployment
-* **Web Server Cell**: Rust-based HTTP server that serves Flutter assets and provides API endpoints
-* **Message Bridge**: HTTP/WebSocket bridge that translates between web protocols and CBS envelopes
-* **Build Integration**: Flutter web compilation integrated into CBS build system
+* Flutter Cells (Dart → JS)
+* Web Server Cell (Rust HTTP server)
+* Message Bridge (HTTP/WebSocket)
+* Build Integration (Flutter web compile in CBS)
 
 ### 16.2 Communication Patterns
 
 **HTTP API Bridge:**
-* `POST /api/cbs/request` - Send CBS envelope requests
-* `GET /api/cbs/subjects` - List registered subjects
-* `WebSocket /ws/cbs` - Real-time bidirectional communication
+* POST /api/cbs/request
+* GET /api/cbs/subjects
+* WebSocket /ws/cbs
 
 **Message Flow:**
-1. Flutter UI generates user interactions
-2. Dart cells create CBS envelopes
-3. HTTP/WebSocket bridge forwards to message bus
-4. Backend cells process requests
-5. Responses flow back through bridge to UI
+1. Flutter UI → envelope
+2. Bridge → bus
+3. Backend cells process
+4. Response → bridge → UI
 
 ### 16.3 Development Workflow
 
-**Local Development:**
 ```bash
-# Start CBS with Flutter web app
 cargo run -p body -- --app apps/flutter_flow_web_app.yaml
-
-# Access application
 open http://localhost:8080
 ```
 
 **Hot Reload:**
-* Flutter hot reload for UI changes
-* CBS cell hot reload for backend changes (future)
-* Configuration hot reload for application switching (future)
+* Flutter hot reload
+* CBS cell hot reload (future)
+* Config hot reload (future)
 
 ### 16.4 Production Deployment
 
-* Single CBS body serves both web assets and API
-* Static asset optimization and caching
-* WebSocket connection management
-* Error handling and graceful degradation
-```
+* Single body serves assets and API
+* Static asset optimization/caching
+* WebSocket management
+* Error handling
 ```
 
 ## Implementation Priority
 
 ### Phase 1: Basic Configuration System
-1. Implement YAML configuration parsing in body crate
-2. Add command line argument support for configuration files
-3. Modify cell loading to use configuration instead of hardcoded imports
-4. Create example configurations for existing CLI greeter app
+1. YAML parsing in body
+2. CLI arg for config
+3. Load cells from config
+4. Example configs for CLI greeter
 
 ### Phase 2: Flutter Web Foundation
-1. Create Flutter cell framework with CBS integration
-2. Implement HTTP/WebSocket bridge for message bus communication
-3. Add web server cell for serving Flutter assets
-4. Create basic Flutter Flow UI cell
+1. Flutter cell framework + CBS integration
+2. HTTP/WebSocket bridge
+3. Web server cell
+4. Basic Flutter Flow UI cell
 
 ### Phase 3: Complete Integration
-1. Build complete Flutter Flow web application
-2. Implement configuration validation and error handling
-3. Add hot reloading capabilities
-4. Create comprehensive documentation and examples
+1. Full Flutter Flow app
+2. Config validation + errors
+3. Hot reload
+4. Documentation and examples
 
 ## Backward Compatibility
 
-All changes maintain backward compatibility with existing CBS functionality:
-- Existing cells continue to work without modification
-- Default behavior preserved when no configuration specified
-- CLI greeter demo continues to work as before
-- All existing tests pass without changes
+- Existing cells work unchanged
+- Defaults preserved when no config specified
+- CLI greeter still works
+- Tests remain passing
 
-The configuration system is additive and does not break existing functionality while enabling powerful new application composition capabilities.
+The configuration system is additive and enables powerful composition without breaking existing behavior.
