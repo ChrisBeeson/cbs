@@ -1,8 +1,10 @@
-use body_core::{BodyBus, BusError, Envelope};
+use body_core::{BodyBus, BusError, Cell, Envelope};
 use serde_json::json;
 use std::env;
 use std::process;
+use std::sync::Arc;
 use tokio;
+use tokio::sync::RwLock;
 
 // Import cells
 use io_print_greeting_rs::PrinterCell;
@@ -93,13 +95,13 @@ fn print_help() {
 
 /// Mock bus implementation for testing without NATS
 pub struct MockBus {
-    handlers: std::collections::HashMap<String, Box<dyn Fn(Envelope) -> Result<serde_json::Value, BusError> + Send + Sync>>,
+    handlers: Arc<RwLock<std::collections::HashMap<String, body_core::MessageHandler>>>,
 }
 
 impl MockBus {
     pub fn new() -> Self {
         Self {
-            handlers: std::collections::HashMap::new(),
+            handlers: Arc::new(RwLock::new(std::collections::HashMap::new())),
         }
     }
 }
@@ -109,16 +111,17 @@ impl BodyBus for MockBus {
     async fn request(&self, envelope: Envelope) -> Result<serde_json::Value, BusError> {
         let subject = envelope.subject();
         
-        if let Some(handler) = self.handlers.get(&subject) {
+        let handlers = self.handlers.read().await;
+        if let Some(handler) = handlers.get(&subject) {
             handler(envelope)
         } else {
             Err(BusError::NotFound(format!("No handler for subject: {}", subject)))
         }
     }
     
-    async fn subscribe(&self, subject: &str, _handler: body_core::MessageHandler) -> Result<(), BusError> {
-        // For mock bus, we can't actually store the handler due to lifetime issues
-        // This is a limitation of the mock implementation
+    async fn subscribe(&self, subject: &str, handler: body_core::MessageHandler) -> Result<(), BusError> {
+        let mut handlers = self.handlers.write().await;
+        handlers.insert(subject.to_string(), handler);
         println!("MockBus: Subscribed to {}", subject);
         Ok(())
     }
@@ -171,32 +174,41 @@ impl Body {
         Ok(())
     }
     
-    /// Run in interactive mode
+    /// Run in interactive mode with MockBus
     async fn run_interactive_mode(&self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("Running in interactive mode...");
-        println!("Note: NATS integration requires compatible Cargo version");
+        println!("Running in interactive mode with MockBus...");
         
-        // For now, simulate the flow without NATS
+        // Create MockBus and register cells
+        let bus = MockBus::new();
+        
+        println!("\n🔧 Registering cells...");
+        let prompt_cell = PromptNameCell::new();
+        let greeting_cell = LogicGreeterCell::new();
+        let printer_cell = PrinterCell::new();
+        
+        prompt_cell.register(&bus).await?;
+        greeting_cell.register(&bus).await?;
+        printer_cell.register(&bus).await?;
+        
         println!("\n1. 📝 Prompting for name...");
-        let _prompt_cell = PromptNameCell::new();
         let prompt_envelope = Envelope::new_request("prompt_name", "read", "demo/v1/Void", json!({}));
-        
-        // This would normally use NATS, but we'll use direct function calls for now
-        let name_result = PromptNameCell::handle_prompt_request(prompt_envelope)?;
+        let name_result = bus.request(prompt_envelope).await?;
         let name = name_result["name"].as_str().unwrap();
         
+        println!("   Input: {}", name);
+        
         println!("\n2. 🤖 Processing greeting...");
-        let _greeting_cell = LogicGreeterCell::new();
         let name_envelope = Envelope::new_request("greeter", "say_hello", "demo/v1/Name", json!({"name": name}));
-        let greeting_result = LogicGreeterCell::handle_greeting_request(name_envelope)?;
+        let greeting_result = bus.request(name_envelope).await?;
         let greeting_message = greeting_result["message"].as_str().unwrap();
         
-        println!("\n3. 🖨️  Printing greeting...");
-        let _printer_cell = PrinterCell::new();
-        let print_envelope = Envelope::new_request("printer", "write", "demo/v1/Message", json!({"message": greeting_message}));
-        PrinterCell::handle_print_request(print_envelope)?;
+        println!("   Generated: {}", greeting_message);
         
-        println!("\n✅ Flow completed successfully!");
+        println!("\n3. 🖨️  Printing greeting...");
+        let print_envelope = Envelope::new_request("printer", "write", "demo/v1/Message", json!({"message": greeting_message}));
+        bus.request(print_envelope).await?;
+        
+        println!("\n✅ Flow completed successfully via MockBus!");
         Ok(())
     }
 }
@@ -247,10 +259,25 @@ mod tests {
     #[tokio::test]
     async fn mock_bus_subscription() {
         let bus = MockBus::new();
-        let handler = Box::new(|_env| Ok(json!({"test": true})));
+        let handler = Box::new(|_env: Envelope| Ok(json!({"test": true})));
         
         let result = bus.subscribe("test.subject", handler).await;
         assert!(result.is_ok());
+    }
+    
+    #[tokio::test]
+    async fn mock_bus_request_with_handler() {
+        let bus = MockBus::new();
+        let handler = Box::new(|envelope: Envelope| {
+            Ok(json!({"received": envelope.service}))
+        });
+        
+        bus.subscribe("cbs.test.action", handler).await.unwrap();
+        
+        let envelope = Envelope::new_request("test", "action", "demo/v1/Test", json!({}));
+        let result = bus.request(envelope).await.unwrap();
+        
+        assert_eq!(result["received"], "test");
     }
     
     #[tokio::test]

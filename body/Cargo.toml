@@ -16,3 +16,6 @@ logic_greet_rs = { path = "../cells/examples/logic_greet_rs" }
 tokio = { workspace = true }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
+
+# Note: body_bus with NATS disabled due to Rust version compatibility
+# body_bus = { path = "../body_bus" }
