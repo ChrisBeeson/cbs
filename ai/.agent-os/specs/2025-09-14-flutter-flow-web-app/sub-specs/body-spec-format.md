@@ -5,7 +5,7 @@ This defines the YAML format for CBS body specs enabling application switching.
 ## Schema Definition
 
 ```yaml
-# body_spec.yaml - CBS Application Configuration
+# app.yaml - CBS Application Configuration
 application_name: string          # Unique application identifier
 version: string                   # Semantic version (e.g., "0.1.0")
 description: string               # Human-readable description
@@ -56,7 +56,7 @@ environments:
 
 ### Flutter Flow Web App
 ```yaml
-# apps/flutter_flow_web_app.yaml
+# applications/flutter_flow_web/app.yaml
 application_name: flutter_flow_web_app
 version: 0.1.0
 description: Flutter web application displaying 'Flow' text
@@ -71,7 +71,7 @@ cells:
   - id: flutter_flow_ui
     name: Flow UI Renderer
     language: dart
-    path: cells/flutter/ui/flow_ui
+    path: ./cells/flow_ui
     enabled: true
     config:
       title: "Flow"
@@ -79,11 +79,11 @@ cells:
   - id: web_server
     name: Web Server
     language: rust  
-    path: cells/rust/web/server
+    path: ../../shared_cells/rust/web_server
     enabled: true
     config:
       port: 8080
-      static_path: "web/build"
+      static_path: "./web/build"
 
 flows:
   - name: web_page_render
@@ -101,7 +101,7 @@ flows:
 
 ### CLI Greeter App
 ```yaml
-# apps/cli_greeter_app.yaml
+# applications/cli_greeter/app.yaml
 application_name: cli_greeter_app
 version: 0.1.0
 description: CLI application for greeting users
@@ -116,19 +116,19 @@ cells:
   - id: io_prompt_name
     name: Name Prompter
     language: rust
-    path: cells/examples/io_prompt_name_rs
+    path: ./cells/io_prompt_name_rs
     enabled: true
   - id: logic_greet
     name: Greeting Logic
     language: rust
-    path: cells/examples/logic_greet_rs
+    path: ./cells/logic_greet_rs
     enabled: true
     dependencies:
       - io_prompt_name
   - id: io_print_greeting
     name: Greeting Printer
     language: rust
-    path: cells/examples/io_print_greeting_rs
+    path: ./cells/io_print_greeting_rs
     enabled: true
     dependencies:
       - logic_greet
@@ -155,14 +155,14 @@ flows:
 
 ### Command Line
 ```bash
-cargo run -p body -- --app apps/flutter_flow_web_app.yaml
+cargo run -p body -- --app applications/flutter_flow_web
 cargo run -p body
-cargo run -p body -- --app apps/flutter_flow_web_app.yaml --env production
+cargo run -p body -- --app applications/flutter_flow_web --env production
 ```
 
 ### Environment Variables
 ```bash
-export CBS_APP_CONFIG=apps/flutter_flow_web_app.yaml
+export CBS_APP_CONFIG=applications/flutter_flow_web
 export CBS_ENVIRONMENT=development
 export CBS_LOG_LEVEL=debug
 cargo run -p body
@@ -171,11 +171,13 @@ cargo run -p body
 ### Configuration Directory
 ```
 cbs/
-├── apps/
-│   ├── flutter_flow_web_app.yaml
-│   ├── cli_greeter_app.yaml
-│   └── multi_cell_demo.yaml
-├── body_spec.yaml
+├── applications/
+│   ├── flutter_flow_web/
+│   │   └── app.yaml
+│   ├── cli_greeter/
+│   │   └── app.yaml
+│   └── multi_cell_demo/
+│       └── app.yaml
 └── body/src/config.rs
 ```
 

@@ -71,24 +71,22 @@ cbs/
 │  └─ src/lib.rs
 ├─ body_bus/                     # message bus
 │  └─ src/lib.rs
-├─ apps/                         # Application configurations
-│  ├─ cli_greeter_app.yaml
-│  ├─ flutter_flow_web_app.yaml
-│  └─ body_spec.yaml             # Default configuration
+├─ applications/                 # Self-contained applications
+│  ├─ cli_greeter/
+│  │  ├─ app.yaml
+│  │  └─ cells/
+│  │     ├─ io_prompt_name/
+│  │     ├─ logic_greet/
+│  │     └─ io_print_greeting/
+│  └─ flutter_flow_web/
+│     ├─ app.yaml
+│     └─ cells/
+│        ├─ flow_ui/
+│        └─ api_bridge/
 └─ cells/
    ├─ examples/                  # Rust example cells
-   │  ├─ greeter_rs/
-   │  ├─ io_prompt_name_rs/
-   │  ├─ logic_greet_rs/
-   │  └─ io_print_greeting_rs/
-   ├─ flutter/                   # Flutter/Dart cells
-   │  ├─ ui/
-   │  │  └─ flow_ui/
-   │  └─ web/
-   │     └─ server/
-   ├─ rust/                      # Additional Rust cells
-   │  └─ web/
-   │     └─ server/
+   ├─ flutter/                   # Flutter/Dart shared cells
+   ├─ rust/                      # Additional Rust shared cells
    └─ python/                    # Python cells (future)
 ```
 ```
@@ -123,10 +121,10 @@ cbs/
 
 **CLI Application:**
 * Prereq: NATS server on `localhost:4222` (or configured)
-* `cargo run -p body -- --app apps/cli_greeter_app.yaml` prompts and prints `Hello <name>!`
+* `cargo run -p body -- --app applications/cli_greeter` prompts and prints `Hello <name>!`
 
 **Flutter Web Application:**
-* `cargo run -p body -- --app apps/flutter_flow_web_app.yaml` starts web server
+* `cargo run -p body -- --app applications/flutter_flow_web` starts web server
 * `http://localhost:8080` displays "Flow" centered
 * Flutter cells talk to CBS via HTTP/WebSocket bridge
 
@@ -174,8 +172,8 @@ flows:
 
 **Command Line:**
 ```bash
-cargo run -p body -- --app apps/flutter_flow_web_app.yaml
-cargo run -p body -- --app apps/cli_greeter_app.yaml
+cargo run -p body -- --app applications/flutter_flow_web
+cargo run -p body -- --app applications/cli_greeter
 cargo run -p body
 ```
 
@@ -233,7 +231,7 @@ Bridge connects Flutter UI cells to CBS bus.
 ### 16.3 Development Workflow
 
 ```bash
-cargo run -p body -- --app apps/flutter_flow_web_app.yaml
+cargo run -p body -- --app applications/flutter_flow_web
 open http://localhost:8080
 ```
 

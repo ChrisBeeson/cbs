@@ -17,7 +17,7 @@ The app loads quickly and shows a clean, modern page with "Flow" centered.
 ### Application Configuration Switching  
 As a developer, I want to switch between CBS applications via directories, so I can deploy different cell compositions without code changes.
 
-Run `cargo run -p body -- --app flutter_flow_web` to load `applications/flutter_flow_web/`, or `cargo run -p body -- --app cli_greeter` to load `applications/cli_greeter/`. Each app is self-contained with its own cells, config, and docs.
+Run `cargo run -p body -- --app applications/flutter_flow_web` to load that app, or `cargo run -p body -- --app applications/cli_greeter` to load the CLI greeter. Each app is self-contained with its own cells, config, and docs.
 
 ### Cell-Based Web Architecture
 As a developer, I want isolated, testable cells for web apps to ensure maintainability and scale.
