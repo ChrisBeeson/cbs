@@ -1,0 +1,21 @@
+name: PR Checklist Enforcement
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  checklist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR body for unchecked items
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request?.body || ''
+            const unchecked = body.match(/- \[ \]/g) || []
+            if (unchecked.length > 0) {
+              core.setFailed(`PR checklist has ${unchecked.length} unchecked item(s).`)
+            }
+
+

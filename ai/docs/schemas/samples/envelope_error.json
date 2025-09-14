@@ -1,0 +1,14 @@
+{
+  "id": "2b7c0a0f-5a62-4d3f-9c6e-1e2f4a6b7c8d",
+  "service": "greeter",
+  "verb": "say_hello",
+  "schema": "demo/v1/Name",
+  "error": {
+    "code": "BadRequest",
+    "message": "name is required",
+    "details": { "field": "name", "reason": "missing" },
+    "hint": "Provide a non-empty name"
+  }
+}
+
+

@@ -1,0 +1,9 @@
+{
+  "id": "3d9a6c2b-8a40-4b1c-9e5d-8c6f4e7f1d11",
+  "service": "greeter",
+  "verb": "say_hello",
+  "schema": "demo/v1/Name",
+  "payload": { "name": "Ada" }
+}
+
+
