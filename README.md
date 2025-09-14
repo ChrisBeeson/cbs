@@ -13,28 +13,40 @@ The MVP demonstrates this concept with Rust cells connected via message passing,
 
 ## 🚀 Quick Start
 
-### Demo Mode (No Dependencies)
+### CLI Greeter Application
 
 ```bash
-# Run the demo with simulated input
+# Run the CLI greeter application
+cargo run -p body -- --app cli_greeter
+
+# Or run in demo mode (simulated input)
+cargo run -p body -- --app cli_greeter --demo
+```
+
+### Flutter Flow Web Application
+
+```bash
+# Run the Flutter web application (when implemented)
+cargo run -p body -- --app flutter_flow_web
+
+# Access the web app at http://localhost:8080
+```
+
+### Default Mode (Legacy)
+
+```bash
+# Run default mode (backwards compatibility)
+cargo run -p body
+
+# Run in demo mode
 cargo run -p body -- --demo
 ```
 
-### Interactive Mode
+### List Available Applications
 
 ```bash
-# Run interactively (prompts for input)
-cargo run -p body
-```
-
-### With NATS (Distributed Mode)
-
-```bash
-# 1. Start NATS server
-docker run -d --name nats-server -p 4222:4222 nats:latest
-
-# 2. Run with NATS (when dependency issues are resolved)
-cargo run -p body -- --nats-url nats://localhost:4222
+# See all available applications
+cargo run -p body -- --list-apps
 ```
 
 ### Run Tests
@@ -76,12 +88,13 @@ Hello Ada Lovelace!
 
 - **`body_core`** - Core contracts (Envelope, BusError, BodyBus, Cell traits)
 - **`body_bus`** - NATS-based message bus implementation  
-- **`body`** - Main orchestrator binary
-- **Cells** - Individual processing units:
-  - `greeter_rs` - Simple greeting logic
-  - `logic_greet_rs` - Advanced greeting with timestamps
-  - `io_prompt_name_rs` - Name input handling
-  - `io_print_greeting_rs` - Output formatting
+- **`body`** - Main orchestrator binary with application loading
+- **Applications** - Self-contained application directories:
+  - `applications/cli_greeter/` - CLI greeting application
+  - `applications/flutter_flow_web/` - Flutter web application (planned)
+- **Shared Cells** - Reusable components in `shared_cells/`:
+  - `shared_cells/rust/web_server/` - HTTP server cell
+  - `shared_cells/dart/cbs_sdk/` - Dart CBS SDK
 
 ### Message Flow
 
@@ -129,15 +142,22 @@ Current test coverage:
 body [OPTIONS]
 
 OPTIONS:
+    --app <APP_NAME>    Application to run (e.g., cli_greeter, flutter_flow_web)
+    --list-apps         List all available applications
     --nats-url <URL>    NATS server URL (default: nats://localhost:4222)
     --demo              Run in demo mode with simulated input
     --mock-bus          Use mock bus instead of NATS (for testing)
+    --env <ENV>         Environment override (development, production)
+    --validate          Validate application configuration
     -h, --help          Print help message
 ```
 
 ### Environment Variables
 
 ```bash
+CBS_DEFAULT_APP=cli_greeter       # Default application to run
+CBS_APPS_DIR=./applications       # Applications directory
+CBS_ENVIRONMENT=development       # Environment (development, production)
 NATS_URL=nats://localhost:4222    # NATS server URL
 CBS_DEMO_MODE=1                   # Enable demo mode
 CBS_MOCK_BUS=1                    # Use mock bus
@@ -159,18 +179,20 @@ CBS_MOCK_BUS=1                    # Use mock bus
 - Full distributed NATS mode available when compatible Rust toolchain is used
 
 ### 🔄 Next Steps
-1. Resolve NATS dependency conflicts
-2. Complete integration test suite
-3. Add CI/CD pipeline with NATS service
-4. Implement polyglot cell support (Python/Dart)
+1. Implement self-contained application system
+2. Create Flutter Flow web application
+3. Add application configuration validation
+4. Implement shared cell system
+5. Add hot reloading for development
 
 ## 🗺️ Roadmap
 
 * **Phase 1 (MVP)**: ✅ Rust cells + message bus + orchestration
-* **Phase 2**: Polyglot support (Python/Dart cells)
-* **Phase 3**: Production features (JetStream, observability, security)
-* **Phase 4**: Advanced features (auto-scaling, self-healing)
-* **Phase 5**: Enterprise platform (governance, compliance, marketplace)
+* **Phase 2**: 🚧 Self-contained applications + Flutter web support
+* **Phase 3**: Polyglot support (Python/Dart cells)
+* **Phase 4**: Production features (JetStream, observability, security)
+* **Phase 5**: Advanced features (auto-scaling, self-healing)
+* **Phase 6**: Enterprise platform (governance, compliance, marketplace)
 
 ## 🧬 Principles
 

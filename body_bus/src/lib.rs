@@ -1,5 +1,4 @@
 use async_nats::{Client, ConnectOptions};
-use async_trait::async_trait;
 use body_core::{BodyBus, BusError, Envelope, MessageHandler};
 use futures_util::StreamExt;
 use serde_json::Value;
@@ -9,11 +8,19 @@ use tokio::sync::RwLock;
 use tokio::time::timeout;
 
 /// NATS-based implementation of the BodyBus trait
-#[derive(Debug)]
 pub struct NatsBus {
     client: Client,
     config: NatsBusConfig,
     handlers: Arc<RwLock<std::collections::HashMap<String, MessageHandler>>>,
+}
+
+impl std::fmt::Debug for NatsBus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NatsBus")
+            .field("config", &self.config)
+            .field("handlers", &format!("{} handlers", self.handlers.try_read().map_or(0, |h| h.len())))
+            .finish()
+    }
 }
 
 /// Configuration for NATS bus connection and behavior

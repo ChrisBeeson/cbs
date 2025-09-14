@@ -173,9 +173,7 @@ async fn server_info_retrieval() {
     require_nats!();
     
     let bus = NatsBus::connect("nats://localhost:4222").await.unwrap();
-    let info = bus.server_info().await;
+    let server_info = bus.server_info();
     
-    assert!(info.is_ok());
-    let server_info = info.unwrap();
     assert!(!server_info.server_name.is_empty());
 }
