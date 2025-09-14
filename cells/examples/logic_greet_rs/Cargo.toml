@@ -1,0 +1,9 @@
+[package]
+name = "logic_greet_rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+body_core = { path = "../../../body_core" }
+serde_json = { workspace = true }
+async-trait = { workspace = true }

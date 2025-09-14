@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "body",
+    "body_core",
+    "body_bus",
+    "cells/examples/greeter_rs",
+    "cells/examples/io_prompt_name_rs", 
+    "cells/examples/logic_greet_rs",
+    "cells/examples/io_print_greeting_rs"
+]
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-trait = "0.1"
+thiserror = "1.0"
+async-nats = "0.33"
+tokio = { version = "1.0", features = ["full"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
