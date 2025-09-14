@@ -7,16 +7,20 @@
       "name": "flutter_flow_web",
       "version": "1.0.0+1",
       "dependencies": [
+        "bus_monitor_cell",
         "cbs_sdk",
+        "flow_text_cell",
         "flow_ui_cell",
         "flutter",
         "http",
         "web_socket_channel"
       ],
       "devDependencies": [
+        "build_runner",
         "build_web_compilers",
         "flutter_lints",
-        "flutter_test"
+        "flutter_test",
+        "mockito"
       ]
     },
     {
@@ -75,10 +79,27 @@
       ]
     },
     {
-      "name": "flow_ui_cell",
+      "name": "flow_text_cell",
+      "version": "1.0.0",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
+      "name": "bus_monitor_cell",
       "version": "1.0.0",
       "dependencies": [
         "cbs_sdk",
+        "flutter"
+      ]
+    },
+    {
+      "name": "flow_ui_cell",
+      "version": "1.0.0",
+      "dependencies": [
+        "bus_monitor_cell",
+        "cbs_sdk",
+        "flow_text_cell",
         "flutter"
       ]
     },
@@ -539,6 +560,219 @@
       "name": "ffi",
       "version": "2.1.4",
       "dependencies": []
+    },
+    {
+      "name": "mockito",
+      "version": "5.5.1",
+      "dependencies": [
+        "analyzer",
+        "build",
+        "code_builder",
+        "collection",
+        "dart_style",
+        "matcher",
+        "meta",
+        "path",
+        "source_gen",
+        "test_api"
+      ]
+    },
+    {
+      "name": "source_gen",
+      "version": "4.0.1",
+      "dependencies": [
+        "analyzer",
+        "async",
+        "build",
+        "dart_style",
+        "glob",
+        "path",
+        "pub_semver",
+        "source_span",
+        "yaml"
+      ]
+    },
+    {
+      "name": "dart_style",
+      "version": "3.1.2",
+      "dependencies": [
+        "analyzer",
+        "args",
+        "collection",
+        "package_config",
+        "path",
+        "pub_semver",
+        "source_span",
+        "yaml"
+      ]
+    },
+    {
+      "name": "code_builder",
+      "version": "4.11.0",
+      "dependencies": [
+        "built_collection",
+        "built_value",
+        "collection",
+        "matcher",
+        "meta"
+      ]
+    },
+    {
+      "name": "built_collection",
+      "version": "5.1.1",
+      "dependencies": []
+    },
+    {
+      "name": "built_value",
+      "version": "8.12.0",
+      "dependencies": [
+        "built_collection",
+        "collection",
+        "fixnum",
+        "meta"
+      ]
+    },
+    {
+      "name": "args",
+      "version": "2.7.0",
+      "dependencies": []
+    },
+    {
+      "name": "build_runner",
+      "version": "2.8.0",
+      "dependencies": [
+        "analyzer",
+        "args",
+        "async",
+        "build",
+        "build_config",
+        "build_daemon",
+        "built_collection",
+        "built_value",
+        "code_builder",
+        "collection",
+        "convert",
+        "crypto",
+        "dart_style",
+        "frontend_server_client",
+        "glob",
+        "graphs",
+        "http_multi_server",
+        "io",
+        "json_annotation",
+        "logging",
+        "meta",
+        "mime",
+        "package_config",
+        "path",
+        "pool",
+        "pub_semver",
+        "shelf",
+        "shelf_web_socket",
+        "stack_trace",
+        "stream_transform",
+        "watcher",
+        "web_socket_channel",
+        "yaml"
+      ]
+    },
+    {
+      "name": "build_config",
+      "version": "1.2.0",
+      "dependencies": [
+        "checked_yaml",
+        "json_annotation",
+        "path",
+        "pubspec_parse"
+      ]
+    },
+    {
+      "name": "frontend_server_client",
+      "version": "4.0.0",
+      "dependencies": [
+        "async",
+        "path"
+      ]
+    },
+    {
+      "name": "io",
+      "version": "1.0.5",
+      "dependencies": [
+        "meta",
+        "path",
+        "string_scanner"
+      ]
+    },
+    {
+      "name": "http_multi_server",
+      "version": "3.2.2",
+      "dependencies": [
+        "async"
+      ]
+    },
+    {
+      "name": "build_daemon",
+      "version": "4.0.4",
+      "dependencies": [
+        "built_collection",
+        "built_value",
+        "crypto",
+        "http_multi_server",
+        "logging",
+        "path",
+        "pool",
+        "shelf",
+        "shelf_web_socket",
+        "stream_transform",
+        "watcher",
+        "web_socket_channel"
+      ]
+    },
+    {
+      "name": "checked_yaml",
+      "version": "2.0.4",
+      "dependencies": [
+        "json_annotation",
+        "source_span",
+        "yaml"
+      ]
+    },
+    {
+      "name": "shelf_web_socket",
+      "version": "3.0.0",
+      "dependencies": [
+        "shelf",
+        "stream_channel",
+        "web_socket_channel"
+      ]
+    },
+    {
+      "name": "mime",
+      "version": "2.0.0",
+      "dependencies": []
+    },
+    {
+      "name": "pubspec_parse",
+      "version": "1.5.0",
+      "dependencies": [
+        "checked_yaml",
+        "collection",
+        "json_annotation",
+        "pub_semver",
+        "yaml"
+      ]
+    },
+    {
+      "name": "shelf",
+      "version": "1.4.2",
+      "dependencies": [
+        "async",
+        "collection",
+        "http_parser",
+        "path",
+        "stack_trace",
+        "stream_channel"
+      ]
     }
   ],
   "configVersion": 1

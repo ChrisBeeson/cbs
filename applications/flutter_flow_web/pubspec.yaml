@@ -15,12 +15,18 @@ dependencies:
     path: ../../shared_cells/dart/cbs_sdk
   flow_ui_cell:
     path: cells/flow_ui
+  bus_monitor_cell:
+    path: cells/bus_monitor
+  flow_text_cell:
+    path: cells/flow_text
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   build_web_compilers: ^4.0.0
+  mockito: ^5.4.2
+  build_runner: ^2.4.7
 
 flutter:
   uses-material-design: true
