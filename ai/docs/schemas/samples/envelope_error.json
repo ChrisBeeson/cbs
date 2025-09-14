@@ -1,14 +1,14 @@
 {
-  "id": "2b7c0a0f-5a62-4d3f-9c6e-1e2f4a6b7c8d",
+  "id": "550e8400-e29b-41d4-a716-446655440001",
   "service": "greeter",
   "verb": "say_hello",
-  "schema": "demo/v1/Name",
+  "schema": "demo/v1/Error",
   "error": {
     "code": "BadRequest",
-    "message": "name is required",
-    "details": { "field": "name", "reason": "missing" },
-    "hint": "Provide a non-empty name"
+    "message": "Missing required field 'name'",
+    "details": {
+      "field": "name",
+      "constraint": "required"
+    }
   }
 }
-
-

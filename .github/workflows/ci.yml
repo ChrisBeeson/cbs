@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    
+    # Note: NATS service disabled due to dependency conflicts
+    # services:
+    #   nats:
+    #     image: nats:latest
+    #     ports:
+    #       - 4222:4222
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+    
+    - name: Run clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    
+    - name: Build all packages
+      run: cargo build --workspace --verbose
+    
+    - name: Run unit tests (without NATS dependencies)
+      run: |
+        cargo test -p body_core
+        cargo test -p greeter_rs  
+        cargo test -p logic_greet_rs
+        cargo test -p io_prompt_name_rs
+        cargo test -p io_print_greeting_rs
+        cargo test -p body
+    
+    # Note: Full workspace tests disabled due to NATS dependency conflicts
+    # - name: Run all tests
+    #   run: cargo test --workspace --verbose
+    #   env:
+    #     NATS_URL: nats://localhost:4222
+    
+    - name: Test demo mode
+      run: cargo run -p body -- --demo
+
+  validate-envelopes:
+    name: Validate Envelopes
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install ajv-cli
+      run: npm install -g ajv-cli
+    
+    - name: Validate envelope samples
+      run: ./ai/scripts/validate_envelopes.sh
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+    
+    - name: Run security audit
+      run: cargo audit
