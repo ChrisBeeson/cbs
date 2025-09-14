@@ -10,15 +10,15 @@
   - [x] 1.5 Create Cargo.toml workspace with proper dependencies (serde, async-trait, thiserror)
   - [x] 1.6 Verify all core contract tests pass
 
-- [ ] 2. NATS Message Bus Implementation
-  - [ ] 2.1 Write tests for NATS connection and reconnection scenarios
-  - [ ] 2.2 Write tests for request/reply pattern with timeout handling
-  - [ ] 2.3 Write tests for queue group load balancing with multiple subscribers
-  - [ ] 2.4 Write tests for error propagation and envelope validation
-  - [ ] 2.5 Implement NatsBus struct with async-nats client integration
-  - [ ] 2.6 Implement BodyBus trait with subscribe and request methods
-  - [ ] 2.7 Add NATS configuration (URL, timeouts, reconnection settings)
-  - [ ] 2.8 Verify all message bus tests pass
+- [x] 2. NATS Message Bus Implementation
+  - [x] 2.1 Write tests for NATS connection and reconnection scenarios
+  - [x] 2.2 Write tests for request/reply pattern with timeout handling
+  - [x] 2.3 Write tests for queue group load balancing with multiple subscribers
+  - [x] 2.4 Write tests for error propagation and envelope validation
+  - [x] 2.5 Implement NatsBus struct with async-nats client integration
+  - [x] 2.6 Implement BodyBus trait with subscribe and request methods
+  - [x] 2.7 Add NATS configuration (URL, timeouts, reconnection settings)
+  - ⚠️ 2.8 Verify all message bus tests pass - Blocking issue: Cargo version incompatibility with async-nats dependencies
 
 - [ ] 3. Example Cells Implementation
   - [ ] 3.1 Write unit tests for io.prompt_name cell with stdin mocking
