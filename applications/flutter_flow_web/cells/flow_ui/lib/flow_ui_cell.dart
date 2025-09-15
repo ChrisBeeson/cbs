@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cbs_sdk/cbs_sdk.dart';
 import 'package:bus_monitor_cell/bus_monitor_cell.dart';
 import 'package:flow_text_cell/flow_text_widget.dart';
+// Note: MockBodyBus import will be resolved by the main app
 
 /// Flow UI Cell - orchestrates bus monitor and flow text cells
 class FlowUICell implements Cell {
@@ -78,7 +79,9 @@ class FlowUICell implements Cell {
 
 /// Flutter widget with split layout integrating flow text and bus monitor
 class FlowUIWidget extends StatefulWidget {
-  const FlowUIWidget({Key? key}) : super(key: key);
+  final BodyBus? bus;
+  
+  const FlowUIWidget({Key? key, this.bus}) : super(key: key);
 
   @override
   State<FlowUIWidget> createState() => _FlowUIWidgetState();
@@ -86,10 +89,90 @@ class FlowUIWidget extends StatefulWidget {
 
 class _FlowUIWidgetState extends State<FlowUIWidget> {
   final FlowUICell _flowUICell = FlowUICell();
+  BodyBus? _bus;
+
+  @override
+  void initState() {
+    super.initState();
+    _bus = widget.bus;
+    _initializeCells();
+  }
+
+  Future<void> _initializeCells() async {
+    if (_bus != null) {
+      await _flowUICell.register(_bus!);
+      print('\x1B[32m[INFO] ${DateTime.now().toIso8601String()} [FlowUIWidget] '
+            'Cells registered with bus\x1B[0m');
+    }
+  }
+
+  /// Handle toggle button press with bus messaging
+  Future<void> _handleTogglePress(bool currentlyVisible) async {
+    // Toggle the flow text
+    _flowUICell.toggleFlowText();
+    
+    // Send bus message about the toggle action
+    if (_bus != null) {
+      final envelope = Envelope.newRequest(
+        service: 'flow_ui',
+        verb: 'toggle',
+        schema: 'flow_ui.toggle.v1',
+        payload: {
+          'action': 'visibility_toggle',
+          'previous_state': currentlyVisible,
+          'new_state': !currentlyVisible,
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+      
+      // Use dynamic typing to call simulateMessage on MockBodyBus
+      try {
+        final dynamic mockBus = _bus;
+        if (mockBus.runtimeType.toString().contains('MockBodyBus')) {
+          await mockBus.simulateMessage(envelope);
+        }
+      } catch (e) {
+        print('\x1B[33m[WARN] ${DateTime.now().toIso8601String()} [FlowUIWidget] '
+              'Could not simulate message: $e\x1B[0m');
+      }
+    }
+  }
+
+  /// Handle clear messages button press with bus messaging
+  Future<void> _handleClearMessages() async {
+    // Clear the messages
+    _flowUICell.clearMessages();
+    
+    // Send bus message about the clear action
+    if (_bus != null) {
+      final envelope = Envelope.newRequest(
+        service: 'bus_monitor',
+        verb: 'clear',
+        schema: 'bus_monitor.clear.v1',
+        payload: {
+          'action': 'messages_cleared',
+          'timestamp': DateTime.now().toIso8601String(),
+          'user_initiated': true,
+        },
+      );
+      
+      // Use dynamic typing to call simulateMessage on MockBodyBus
+      try {
+        final dynamic mockBus = _bus;
+        if (mockBus.runtimeType.toString().contains('MockBodyBus')) {
+          await mockBus.simulateMessage(envelope);
+        }
+      } catch (e) {
+        print('\x1B[33m[WARN] ${DateTime.now().toIso8601String()} [FlowUIWidget] '
+              'Could not simulate clear message: $e\x1B[0m');
+      }
+    }
+  }
 
   @override
   void dispose() {
     _flowUICell.dispose();
+    _bus?.close();
     super.dispose();
   }
 
@@ -155,7 +238,7 @@ class _FlowUIWidgetState extends State<FlowUIWidget> {
   /// Build toggle button for flow text visibility
   Widget _buildToggleButton(bool isVisible) {
     return ElevatedButton.icon(
-      onPressed: () => _flowUICell.toggleFlowText(),
+      onPressed: () => _handleTogglePress(isVisible),
       icon: Icon(
         isVisible ? Icons.visibility : Icons.visibility_off,
         color: Colors.white,
@@ -209,7 +292,7 @@ class _FlowUIWidgetState extends State<FlowUIWidget> {
           ),
           const SizedBox(width: 8),
           ElevatedButton.icon(
-            onPressed: () => _flowUICell.clearMessages(),
+            onPressed: () => _handleClearMessages(),
             icon: const Icon(Icons.clear_all, size: 16, color: Colors.white),
             label: const Text('Clear', style: TextStyle(color: Colors.white, fontSize: 12)),
             style: ElevatedButton.styleFrom(
@@ -343,21 +426,3 @@ class _FlowUIWidgetState extends State<FlowUIWidget> {
   }
 }
 
-/// Main app widget for Flutter web
-class FlowApp extends StatelessWidget {
-  const FlowApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flow - CBS Web Application',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: const Color(0xFF1A1A1A),
-        fontFamily: 'Inter',
-      ),
-      home: const FlowUIWidget(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}

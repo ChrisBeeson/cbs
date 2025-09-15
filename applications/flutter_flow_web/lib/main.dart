@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flow_ui_cell/flow_ui_cell.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flow_ui_cell/flow_ui_cell.dart';
+import 'mock_bus.dart';
+import 'dart:html' as html show document;
 
 /// App entrypoint.
 /// On web, we mark the HTML body with `flutter-loaded` after the first frame
@@ -16,8 +18,8 @@ void main() {
 }
 
 void _addFlutterLoadedClass() {
-  // This will be replaced by conditional imports in a real web build
-  // For testing purposes, this is a no-op
+  // Add flutter-loaded class to body to hide loading spinner
+  html.document.body?.classes.add('flutter-loaded');
 }
 
 /// Main application entry point
@@ -39,7 +41,7 @@ class FlowApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const FlowUIWidget(),
+      home: FlowUIWidget(bus: MockBodyBus()),
       debugShowCheckedModeBanner: false,
     );
   }
