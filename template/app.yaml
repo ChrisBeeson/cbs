@@ -1,0 +1,20 @@
+project:
+  name: "{{project_name}}"
+  version: "0.1.0"
+  description: "CBS application built with Cell Body System framework"
+
+framework:
+  cbs_version: "0.1.0"
+  nats_url: "nats://localhost:4222"
+  
+runtime:
+  timeout_ms: 5000
+  demo_mode: false
+  mock_bus: false
+
+# Applications will be defined here
+# applications:
+#   - name: my_app
+#     type: cli|web|service
+#     entry_point: ./applications/my_app
+

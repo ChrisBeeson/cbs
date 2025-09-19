@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Cell Guard: enforce commits touch only a single cell path
+# DEPRECATED: Cell Guard - strict commit isolation is no longer enforced
+# Cells are now allowed to be larger and contain internal components
+# The only requirement is that cells MUST communicate via bus only
+#
+# This script is kept for backward compatibility but is no longer recommended
 # Usage:
 #   scripts/cell_guard.sh start <cell_path>
 #   scripts/cell_guard.sh stop

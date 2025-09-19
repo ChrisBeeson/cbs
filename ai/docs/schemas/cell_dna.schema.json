@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cbs.dev/schemas/cell_dna.schema.json",
+  "title": "CBS Cell DNA",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["id", "name", "version", "language", "category", "purpose"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "name": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "language": { "type": "string", "enum": ["rust", "python", "dart", "go", "ts"] },
+    "category": { "type": "string", "enum": ["ui", "io", "logic", "integration", "storage"] },
+    "purpose": { "type": "string", "minLength": 1 },
+    "interface": {
+      "type": "object",
+      "properties": {
+        "subjects": {
+          "type": "object",
+          "properties": {
+            "subscribe": {"type": "array", "items": {"type": "string"}},
+            "publish": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        },
+        "envelope": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "tests": { "type": "array", "items": { "type": "string" } }
+  }
+}

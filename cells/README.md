@@ -24,7 +24,7 @@ cells/
 
 ### New Structure (Recommended)
 ```
-applications/                   # Self-contained applications
+examples/applications/         # Self-contained applications
 ├── cli_greeter/               # CLI greeter application
 │   ├── app.yaml              # Application configuration
 │   └── cells/                # Application-specific cells
@@ -32,7 +32,7 @@ applications/                   # Self-contained applications
     ├── app.yaml              # Application configuration
     └── cells/                # Application-specific cells
 
-shared_cells/                  # Reusable cells across applications
+framework/shared_cells/        # Reusable cells across applications
 ├── rust/                     # Shared Rust cells
 └── dart/                     # Shared Dart cells
 ```
@@ -73,14 +73,14 @@ Handle external service integrations:
 
 ### Creating New Applications
 
-For self-contained applications, create them in the `applications/` directory:
+For self-contained applications, create them in the `examples/applications/` directory:
 
 ```bash
 # Create new application
 cargo run -p body -- --new-app my_app --template web
 
 # This creates:
-# applications/my_app/
+# examples/applications/my_app/
 # ├── app.yaml              # Application configuration
 # ├── README.md             # Application documentation
 # └── cells/                # Application-specific cells
@@ -155,7 +155,7 @@ Every cell must:
 
 ### For New Applications (Recommended)
 
-1. **Create application directory**: Use `--new-app` command or manually create under `applications/`
+1. **Create application directory**: Use `--new-app` command or manually create under `examples/applications/`
 2. **Design application structure**: Define cells, configuration, and flows in `app.yaml`
 3. **Create application cells**: Use `@execute-cell-spec.md` for each cell
 4. **Write tests first**: Follow TDD approach for all cells
@@ -189,9 +189,9 @@ Every cell must:
 - `io_print_greeting_rs/` - Output handling
 - `logic_greet_rs/` - Pure logic transformation
 
-### Modern Applications (applications/ directory)
-- `applications/cli_greeter/` - Complete CLI greeting application
-- `applications/flutter_flow_web/` - Flutter web application (planned)
+### Modern Applications (examples/applications/ directory)
+- `examples/applications/cli_greeter/` - Complete CLI greeting application
+- `examples/applications/flutter_flow_web/` - Flutter web application
 
 Each example includes:
 - Complete specification (SPEC.md)
