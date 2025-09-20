@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'widgets/main_app_widget.dart';
 import 'mock_bus.dart';
-import 'dart:html' as html show document;
+import 'package:web/web.dart' as web;
 
 /// App entrypoint.
 /// On web, we mark the HTML body with `flutter-loaded` after the first frame
@@ -19,7 +19,7 @@ void main() {
 
 void _addFlutterLoadedClass() {
   // Add flutter-loaded class to body to hide loading spinner
-  html.document.body?.classes.add('flutter-loaded');
+  web.document.body?.className = '${web.document.body?.className ?? ''} flutter-loaded'.trim();
 }
 
 /// Main application entry point
