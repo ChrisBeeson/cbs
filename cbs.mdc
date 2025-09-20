@@ -1,0 +1,156 @@
+---
+alwaysApply: true
+---
+
+# CBS Methodology Rules (MDC)
+mdc_version: 1.0
+
+cbs:
+  name: Cell Body System
+  cardinal_rule: "Cells MUST ONLY communicate through the bus — never directly"
+  subject_pattern: "cbs.{service}.{verb}"
+  subject_regex: "^cbs\.[a-z0-9_]+\.[a-z0-9_]+$"
+  allowed_subject_wildcards:
+    - "cbs.>"   # bus monitor
+    - "*"       # only inside per-cell subscriptions if needed
+  envelope_schema: "framework/docs/schemas/envelope.schema.json"
+
+paths:
+  # Application-level specs
+  app_specs:
+    - "applications/*/ai/app_spec.md"
+    - "examples/applications/*/ai/app_spec.md"
+  # Cell-level specs (canonical)
+  cell_specs:
+    - "applications/*/cells/*/ai/spec.md"
+    - "examples/applications/*/cells/*/ai/spec.md"
+  # Per-application cell maps (generated)
+  cell_map_out: "applications/{app}/ai/cell_map.md"
+
+constraints:
+  categories: [ui, io, logic, integration, storage]
+  languages: [rust, python, dart, go, ts]
+  enforce_bus_only: true
+  require_cell_spec: true
+
+enforcement:
+  # Commands the agent should use to enforce CBS methodology
+  validators:
+    - name: spec_validator
+      run: "cbs-agent/scripts/validate_spec.py"
+    - name: envelope_validator
+      run: "cbs-agent/scripts/validate_envelopes.sh"
+    - name: isolation_validator
+      run: "cbs-agent/scripts/agent-os/cbs-validate-isolation --all"
+  # One-shot convenience validator that runs all checks and regenerates maps
+  validate_all: "cbs-agent/scripts/cbs-validate-spec"
+
+artifacts:
+  cell_map:
+    per_app: true
+    generator: "cbs-agent/scripts/generate_cell_map.py"
+    output_template: "applications/{app}/ai/cell_map.md"
+
+policy:
+  docs_must_update_on:
+    - message_subjects_changed
+    - schema_version_changed
+    - timeouts_policy_changed
+    - error_codes_changed
+  references:
+    - "framework/docs/llm_tripwires.md"
+    - "framework/docs/quick-reference.md"
+
+workflows:
+  create_cell:
+    scaffold: "cbs-agent/tools/cbs-cell create <cell> --app <app> --type <type> --lang <lang>"
+    requires:
+      - paths.cell_specs
+      - constraints.categories
+      - constraints.languages
+  regenerate_cell:
+    dry_run: "cbs-agent/scripts/cbs-regenerate-cell <app> <cell>"
+    apply: "cbs-agent/scripts/cbs-regenerate-cell <app> <cell> --yes"
+  validate_before_commit:
+    steps:
+      - "cbs-agent/scripts/agent-os/cbs-validate-isolation --all"
+      - "cbs-agent/scripts/cbs-validate-spec"
+
+notes:
+  - "Cell specs live under applications/<app>/cells/<cell>/ai/spec.md"
+  - "Application specs live under applications/<app>/ai/app_spec.md"
+  - "Cell maps are generated per application in applications/<app>/ai/cell_map.md"# CBS Methodology Rules (MDC)
+mdc_version: 1.0
+
+cbs:
+  name: Cell Body System
+  cardinal_rule: "Cells MUST ONLY communicate through the bus — never directly"
+  subject_pattern: "cbs.{service}.{verb}"
+  subject_regex: "^cbs\.[a-z0-9_]+\.[a-z0-9_]+$"
+  allowed_subject_wildcards:
+    - "cbs.>"   # bus monitor
+    - "*"       # only inside per-cell subscriptions if needed
+  envelope_schema: "framework/docs/schemas/envelope.schema.json"
+
+paths:
+  # Application-level specs
+  app_specs:
+    - "applications/*/ai/app_spec.md"
+    - "examples/applications/*/ai/app_spec.md"
+  # Cell-level specs (canonical)
+  cell_specs:
+    - "applications/*/cells/*/ai/spec.md"
+    - "examples/applications/*/cells/*/ai/spec.md"
+  # Per-application cell maps (generated)
+  cell_map_out: "applications/{app}/ai/cell_map.md"
+
+constraints:
+  categories: [ui, io, logic, integration, storage]
+  languages: [rust, python, dart, go, ts]
+  enforce_bus_only: true
+  require_cell_spec: true
+
+enforcement:
+  # Commands the agent should use to enforce CBS methodology
+  validators:
+    - name: spec_validator
+      run: "cbs-agent/scripts/validate_spec.py"
+    - name: envelope_validator
+      run: "cbs-agent/scripts/validate_envelopes.sh"
+    - name: isolation_validator
+      run: "cbs-agent/scripts/agent-os/cbs-validate-isolation --all"
+  # One-shot convenience validator that runs all checks and regenerates maps
+  validate_all: "cbs-agent/scripts/cbs-validate-spec"
+
+artifacts:
+  cell_map:
+    per_app: true
+    generator: "cbs-agent/scripts/generate_cell_map.py"
+    output_template: "applications/{app}/ai/cell_map.md"
+
+policy:
+  docs_must_update_on:
+    - message_subjects_changed
+    - schema_version_changed
+    - timeouts_policy_changed
+    - error_codes_changed
+  references:
+    - "framework/docs/llm_tripwires.md"
+    - "framework/docs/quick-reference.md"
+
+workflows:
+  create_cell:
+    scaffold: "cbs-agent/tools/cbs-cell create <cell> --app <app> --type <type> --lang <lang>"
+    requires:
+      - paths.cell_specs
+      - constraints.categories
+      - constraints.languages
+  validate_before_commit:
+    steps:
+      - "cbs-agent/scripts/agent-os/cbs-validate-isolation --all"
+      - "cbs-agent/scripts/cbs-validate-spec"
+
+notes:
+  - "Cell specs live under applications/<app>/cells/<cell>/ai/spec.md"
+  - "Application specs live under applications/<app>/ai/app_spec.md"
+  - "Cell maps are generated per application in applications/<app>/ai/cell_map.md"

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+echo "🧪 CBS Spec Validation"
+echo "======================"
+
+echo "1) Validating cell specs (ai/spec.md)"
+"$ROOT_DIR/cbs-agent/scripts/validate_spec.py" || true
+
+echo
+echo "2) Validating envelope schema samples"
+"$ROOT_DIR/cbs-agent/scripts/validate_envelopes.sh" || true
+
+echo
+echo "3) Generating cell map"
+"$ROOT_DIR/cbs-agent/scripts/generate_cell_map.py" || true
+
+echo
+echo "Done."
+
+

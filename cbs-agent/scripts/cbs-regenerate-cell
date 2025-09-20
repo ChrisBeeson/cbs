@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: cbs-regenerate-cell <app> <cell> [--yes]"
+  echo "Regenerates cell implementation from ai/spec.md (dry-run by default)"
+}
+
+if [ $# -lt 2 ]; then usage; exit 1; fi
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+APP="$1"; CELL="$2"; shift 2 || true
+APPLY=false
+if [ "${1-}" = "--yes" ]; then APPLY=true; fi
+
+BASE_DIR=""
+if [ -d "$ROOT_DIR/applications/$APP/cells/$CELL" ]; then
+  BASE_DIR="$ROOT_DIR/applications/$APP/cells/$CELL"
+elif [ -d "$ROOT_DIR/examples/applications/$APP/cells/$CELL" ]; then
+  BASE_DIR="$ROOT_DIR/examples/applications/$APP/cells/$CELL"
+else
+  echo "❌ Cell not found under applications/ or examples/applications/" >&2
+  exit 2
+fi
+
+SPEC="$BASE_DIR/ai/spec.md"
+if [ ! -f "$SPEC" ]; then
+  echo "❌ Missing spec: $SPEC" >&2
+  exit 3
+fi
+
+echo "🧬 Generating from spec: $SPEC"
+if $APPLY; then
+  "$ROOT_DIR/cbs-agent/scripts/generate_cell_from_spec.py" "$BASE_DIR" --apply
+else
+  "$ROOT_DIR/cbs-agent/scripts/generate_cell_from_spec.py" "$BASE_DIR"
+fi
+
+echo "Done."
+
+

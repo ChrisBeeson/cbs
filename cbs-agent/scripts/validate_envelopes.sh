@@ -6,8 +6,16 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCHEMA_FILE="$SCRIPT_DIR/../docs/schemas/envelope.schema.json"
-SAMPLES_DIR="$SCRIPT_DIR/../docs/schemas/samples"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Prefer framework docs
+if [ -f "$ROOT_DIR/framework/docs/schemas/envelope.schema.json" ]; then
+  SCHEMA_FILE="$ROOT_DIR/framework/docs/schemas/envelope.schema.json"
+  SAMPLES_DIR="$ROOT_DIR/framework/docs/schemas/samples"
+else
+  SCHEMA_FILE="$SCRIPT_DIR/../docs/schemas/envelope.schema.json"
+  SAMPLES_DIR="$SCRIPT_DIR/../docs/schemas/samples"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -20,14 +28,10 @@ echo "=========================="
 
 # Check if ajv-cli is installed
 if ! command -v ajv &> /dev/null; then
-    echo -e "${YELLOW}Warning: ajv-cli not found. Installing...${NC}"
-    if command -v npm &> /dev/null; then
-        npm install -g ajv-cli
-    else
-        echo -e "${RED}Error: npm not found. Please install Node.js and npm first.${NC}"
-        echo "Visit: https://nodejs.org/"
-        exit 1
-    fi
+    echo -e "${YELLOW}ajv-cli not found. Will use npx to run without global install.${NC}"
+    AJV_RUNNER="npx -y -p ajv-cli@5 -p ajv-formats@2 ajv"
+else
+    AJV_RUNNER="ajv"
 fi
 
 # Check if schema file exists
@@ -48,12 +52,12 @@ if [ -d "$SAMPLES_DIR" ]; then
             filename=$(basename "$sample_file")
             echo -n "  $filename: "
             
-            if ajv validate -s "$SCHEMA_FILE" -d "$sample_file" --verbose 2>/dev/null; then
+            if $AJV_RUNNER validate --spec=draft2020 -c ajv-formats -s "$SCHEMA_FILE" -d "$sample_file" --verbose 2>/dev/null; then
                 echo -e "${GREEN}✓ Valid${NC}"
             else
                 echo -e "${RED}✗ Invalid${NC}"
                 echo "    Running detailed validation..."
-                ajv validate -s "$SCHEMA_FILE" -d "$sample_file" --verbose || true
+                $AJV_RUNNER validate --spec=draft2020 -c ajv-formats -s "$SCHEMA_FILE" -d "$sample_file" --verbose || true
                 echo
             fi
         fi
@@ -70,12 +74,12 @@ if [ $# -gt 0 ]; then
             filename=$(basename "$file")
             echo -n "  $file: "
             
-            if ajv validate -s "$SCHEMA_FILE" -d "$file" --verbose 2>/dev/null; then
+            if $AJV_RUNNER validate --spec=draft2020 -c ajv-formats -s "$SCHEMA_FILE" -d "$file" --verbose 2>/dev/null; then
                 echo -e "${GREEN}✓ Valid${NC}"
             else
                 echo -e "${RED}✗ Invalid${NC}"
                 echo "    Running detailed validation..."
-                ajv validate -s "$SCHEMA_FILE" -d "$file" --verbose || true
+                $AJV_RUNNER validate --spec=draft2020 -c ajv-formats -s "$SCHEMA_FILE" -d "$file" --verbose || true
                 echo
             fi
         else

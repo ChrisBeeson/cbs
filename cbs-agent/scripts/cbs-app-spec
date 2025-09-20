@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "Usage: cbs-app-spec <app_name>"
+  echo "Creates or updates applications/<app>/ai/app_spec.md from template"
+}
+
+APP_NAME="${1-}"
+if [ -z "$APP_NAME" ] || [[ "$APP_NAME" == -* ]]; then
+  usage; exit 1
+fi
+
+APP_DIR="$ROOT_DIR/applications/$APP_NAME"
+EX_APP_DIR="$ROOT_DIR/examples/applications/$APP_NAME"
+TARGET_DIR=""
+if [ -d "$APP_DIR" ]; then
+  TARGET_DIR="$APP_DIR/ai"
+elif [ -d "$EX_APP_DIR" ]; then
+  TARGET_DIR="$EX_APP_DIR/ai"
+else
+  echo "❌ Application '$APP_NAME' not found under applications/ or examples/applications/" >&2
+  exit 2
+fi
+
+mkdir -p "$TARGET_DIR"
+TEMPLATE="$ROOT_DIR/cbs-agent/templates/app_spec.md"
+OUT="$TARGET_DIR/app_spec.md"
+
+if [ ! -f "$TEMPLATE" ]; then
+  echo "❌ Template not found: $TEMPLATE" >&2
+  exit 3
+fi
+
+cp "$TEMPLATE" "$OUT"
+sed -i.bak "s/{{APP_NAME}}/$APP_NAME/g" "$OUT" && rm -f "$OUT.bak"
+echo "✅ Wrote $OUT"
+
+

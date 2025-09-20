@@ -13,8 +13,7 @@ agents:
 
 project_types:
   default:
-    instructions: ./cbs-agent/instructions
-    standards: ./cbs-agent/standards
+
 
   # type_a:
   #   instructions: ./cbs-agent/project_types/type_a/instructions
