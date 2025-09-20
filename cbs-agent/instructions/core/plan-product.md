@@ -1,16 +1,20 @@
 ---
-description: Product Planning Rules for Agent OS
+description: CBS Application Planning and Specification Rules
 globs:
 alwaysApply: false
-version: 4.0
+version: 5.0
 encoding: UTF-8
 ---
 
-# Product Planning Rules
+# CBS Application Planning
 
 ## Overview
 
-Generate product docs for new projects: mission, tech-stack and roadmap files for AI agent consumption.
+Generate application specifications for CBS multi-cell applications, including cell architecture planning, message flow design, and implementation roadmaps.
+
+<cbs_context_check>
+  EXECUTE: @cbs-agent/instructions/meta/cbs-context.md
+</cbs_context_check>
 
 <pre_flight_check>
   EXECUTE: @cbs-agent/instructions/meta/pre-flight.md

@@ -41,26 +41,33 @@ Create minimal `spec.md` with required fields.
 
 </step>
 
-<step number="3" name="guards">
+<step number="3" name="integrate_with_workflow">
 
-### Step 3: Guards
-- Enable commit guard: `scripts/cell_guard.sh start applications/<app>/cells/<cell>`
-- Recommend import guard: add `scripts/cell_import_guard.sh` to pre-commit chain if desired
+### Step 3: Integrate with Workflow State
+- Update workflow state to include new cell
+- Set cell status to "spec_pending" in workflow
+- Add cell to application's cell list
+- Update CBS application context
 
 </step>
 
 <step number="4" name="validate">
 
-### Step 4: Validate
-- Run `python3 ai/scripts/validate_spec.py`
-- Fix missing required fields
+### Step 4: Validate Cell Structure
+- Run `cbs validate --specs` to validate cell specification
+- Check CBS compliance (bus-only communication, proper isolation)
+- Verify cell follows category standards
+- Fix any validation issues
 
 </step>
 
-<step number="5" name="map">
+<step number="5" name="update_cell_map">
 
-### Step 5: Update Map
-- Run `python3 ai/scripts/generate_cell_map.py`
+### Step 5: Update Cell Documentation
+- Run `cbs validate --map` to update cell map
+- Generate cell catalog entry if shareable
+- Update application documentation
+- Commit initial cell scaffold
 
 </step>
 

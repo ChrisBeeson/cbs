@@ -1,16 +1,20 @@
 ---
-description: Rules to finish off and deliver to user set of tasks that have been completed using Agent OS
+description: Rules to complete CBS cell implementation and validate system integration
 globs:
 alwaysApply: false
-version: 1.0
+version: 2.0
 encoding: UTF-8
 ---
 
-# Task Execution Rules
+# CBS Cell Post-Execution Tasks
 
 ## Overview
 
-Follow these steps to mark your progress updates, create a recap, and deliver the final report to the user.
+Complete CBS cell implementation with proper validation, integration testing, and workflow state updates while maintaining cell isolation and bus-only communication.
+
+<cbs_context_check>
+  EXECUTE: @cbs-agent/instructions/meta/cbs-context.md
+</cbs_context_check>
 
 <pre_flight_check>
   EXECUTE: @cbs-agent/instructions/meta/pre-flight.md

@@ -1,21 +1,25 @@
 ---
-description: Rules to initiate execution of a set of tasks using Agent OS
+description: Rules to execute CBS cell implementation tasks with proper isolation
 globs:
 alwaysApply: false
-version: 1.0
+version: 2.0
 encoding: UTF-8
 ---
 
-# Task Execution Rules
+# CBS Cell Task Execution Rules
 
 ## Overview
 
-Execute tasks for a given spec following three distinct phases:
+Execute CBS cell implementation tasks following three distinct phases while maintaining cell isolation and bus-only communication:
 1. Pre-execution setup (Steps 1-3)
-2. Task execution loop (Step 4)
+2. Task execution loop (Step 4) 
 3. Post-execution tasks (Step 5)
 
 **IMPORTANT**: All three phases MUST be completed. Do not stop after phase 2.
+
+<cbs_context_check>
+  EXECUTE: @cbs-agent/instructions/meta/cbs-context.md
+</cbs_context_check>
 
 <pre_flight_check>
   EXECUTE: @cbs-agent/instructions/meta/pre-flight.md
