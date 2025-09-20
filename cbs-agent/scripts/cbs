@@ -1,145 +1,81 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# CBS - Unified Cell Body System CLI Tool
+# Unified CBS CLI - single entry point for all CBS development tools
 ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 usage() {
-  echo "CBS - Cell Body System Unified CLI"
-  echo
+  echo "CBS - Cell Body System Development CLI"
   echo "Usage: cbs <command> [args...]"
-  echo
-  echo "Workflow Commands (NEW):"
-  echo "  workflow <command>                    Manage iterative development workflow"
-  echo "  app-create <app_name>                 Create new CBS application with workflow"
-  echo "  iterate 'description'                 Create new iteration in current phase"
-  echo "  status                                Show workflow and application status"
-  echo
-  echo "Core Commands:"
-  echo "  validate [--specs|--envelopes|--map]  Validate specs and generate artifacts"
-  echo "  cell <action> [args...]               Cell operations"
-  echo "  app-spec <app_name>                   Create/update app specification"
-  echo "  regenerate <app> <cell>               Regenerate cell from spec"
+  echo "Commands:"
   echo "  context <app_name>                    Set application context"
   echo "  focus <cell_name>                     Focus on specific cell"
-  echo "  work <app> <cell>                     Start work session"
+  echo "  work <app> <cell>                     Start work session on app/cell"
+  echo "  validate [--specs|--envelopes|--map|--architecture]  Full validation suite"
   echo "  isolation [--app|--all]               Validate cell isolation"
+  echo "  validate-code-isolation [--app|--all] Validate code-level isolation"
+  echo "  realtime-feedback [--watch|--app]     Real-time CBS compliance feedback"
+  echo "  bus-simulator --app <app> --cell <cell>  Simulate bus interactions"
+  echo "  cell <action> [args...]               Cell management (search, install, etc)"
+  echo "  app-spec <app>                        Create/update app specification"
+  echo "  regenerate-cell <app> <cell>          Regenerate cell from spec"
+  echo "  workflow <action> [args...]           Workflow state management"
+  echo "  --help, -h                            Show this help"
   echo
-  echo "Cell actions:"
-  echo "  generate                              Generate catalog (MD + JSON)"
-  echo "  search [--language L] [--category C]  Search shareable cells"
-  echo "  install <cellId> <app>                Install cell into app"
-  echo "  create <path> --app <app> --type <type> --lang <lang>  Create cell (hierarchical)"
-  echo "  list [domain/path]                    List cells in hierarchy"
-  echo "  migrate <app> --to-hierarchy          Migrate to hierarchical structure"
-  echo
-  echo "Workflow Examples:"
-  echo "  cbs app-create my_new_app             Create app with workflow tracking"
-  echo "  cbs status                            Show current workflow status"
-  echo "  cbs iterate 'Added user authentication' Create new iteration"
-  echo "  cbs workflow rollback 2               Rollback to iteration 2"
-  echo
-  echo "Traditional Examples:"
-  echo "  cbs validate --specs                  Validate only cell specifications"
-  echo "  cbs cell search --language dart       Search for Dart cells"
-  echo "  cbs work flutter_flow_web flow_ui     Start working on flow_ui cell"
+  echo "See individual scripts for detailed usage."
 }
 
-case "${1:-}" in
-  # New workflow commands
-  workflow)
-    shift
-    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" "$@"
-    ;;
-  app-create)
-    shift
-    if [ $# -lt 1 ]; then
-      echo "Usage: cbs app-create <app_name>"
-      exit 1
-    fi
-    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" init "$@"
-    ;;
-  iterate)
-    shift
-    if [ $# -lt 1 ]; then
-      echo "Usage: cbs iterate 'description'"
-      exit 1
-    fi
-    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" iterate --description "$@"
-    ;;
-  status)
-    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" status
-    ;;
-    
-  # Existing commands
-  validate)
-    shift
-    exec "$ROOT_DIR/cbs-agent/scripts/cbs-validate-spec" "$@"
-    ;;
-  cell)
-    shift
-    case "${1:-}" in
-      create)
-        shift
-        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell-create" create "$@"
-        ;;
-      list)
-        shift
-        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cells-hierarchy" list "$@"
-        ;;
-      migrate)
-        shift
-        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cells-hierarchy" migrate "$@"
-        ;;
-      hierarchy)
-        shift
-        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cells-hierarchy" "$@"
-        ;;
-      *)
-        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell" "$@"
-        ;;
-    esac
-    ;;
-  app-spec)
-    shift
-    exec "$ROOT_DIR/cbs-agent/scripts/cbs-app-spec" "$@"
-    ;;
-  regenerate)
-    shift
-    exec "$ROOT_DIR/cbs-agent/scripts/cbs-regenerate-cell" "$@"
-    ;;
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 1
+fi
+
+cmd="$1"
+shift
+
+case "$cmd" in
   context)
-    shift
     exec "$ROOT_DIR/cbs-agent/scripts/cbs-app-context" "$@"
     ;;
   focus)
-    shift
     exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell-focus" "$@"
     ;;
   work)
-    shift
-    if [ $# -lt 2 ]; then
-      echo "Usage: cbs work <app> <cell>"
-      exit 1
-    fi
-    # Set context and focus in one command
-    "$ROOT_DIR/cbs-agent/scripts/cbs-app-context" "$1"
-    "$ROOT_DIR/cbs-agent/scripts/cbs-cell-focus" "$2"
-    echo "✅ Work session started: $1/$2"
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-work" "$@"
+    ;;
+  validate)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-validate-spec" "$@"
     ;;
   isolation)
-    shift
     exec "$ROOT_DIR/cbs-agent/scripts/cbs-validate-isolation" "$@"
     ;;
-  --help|-h|help)
-    usage
+  validate-code-isolation)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-validate-code-isolation" "$@"
     ;;
-  "")
+  realtime-feedback)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-realtime-feedback" "$@"
+    ;;
+  bus-simulator)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-bus-simulator" "$@"
+    ;;
+  cell)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell" "$@"
+    ;;
+  app-spec)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-app-spec" "$@"
+    ;;
+  regenerate-cell)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-regenerate-cell" "$@"
+    ;;
+  workflow)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" "$@"
+    ;;
+  --help|-h)
     usage
-    exit 1
+    exit 0
     ;;
   *)
-    echo "Unknown command: $1"
+    echo "Unknown command: $cmd"
     usage
     exit 1
     ;;

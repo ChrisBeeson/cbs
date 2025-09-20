@@ -4,18 +4,20 @@ set -euo pipefail
 ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 usage() {
-  echo "Usage: cbs-validate-spec [--map-only|--specs-only|--envelopes-only]"
-  echo "Validates CBS specifications, envelopes, and generates cell map"
+  echo "Usage: cbs-validate-spec [--map-only|--specs-only|--envelopes-only|--architecture-only]"
+  echo "Validates CBS specifications, envelopes, generates cell map, and validates app architecture"
 }
 
 SPECS=true
 ENVELOPES=true
 MAP=true
+ARCHITECTURE=true
 
 case "${1:-all}" in
-  --specs-only) ENVELOPES=false; MAP=false ;;
-  --envelopes-only) SPECS=false; MAP=false ;;
-  --map-only) SPECS=false; ENVELOPES=false ;;
+  --specs-only) ENVELOPES=false; MAP=false; ARCHITECTURE=false ;;
+  --envelopes-only) SPECS=false; MAP=false; ARCHITECTURE=false ;;
+  --map-only) SPECS=false; ENVELOPES=false; ARCHITECTURE=false ;;
+  --architecture-only) SPECS=false; ENVELOPES=false; MAP=false ;;
   --help|-h) usage; exit 0 ;;
   all) ;;
   *) echo "Unknown option: $1"; usage; exit 1 ;;
@@ -39,6 +41,12 @@ if [ "$MAP" = true ]; then
   echo
   echo "🗺️  Generating cell map..."
   "$ROOT_DIR/cbs-agent/scripts/generate_cell_map.py"
+fi
+
+if [ "$ARCHITECTURE" = true ]; then
+  echo
+  echo "🏗️  Validating application architecture..."
+  "$ROOT_DIR/cbs-agent/scripts/cbs-validate-architecture" --all
 fi
 
 echo

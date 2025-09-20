@@ -92,6 +92,9 @@ cbs work <app> <cell>           # Start work session
 cbs validate                    # Full validation suite
 cbs validate --specs           # Specs only
 cbs isolation                  # Check cell isolation
+cbs validate-code-isolation    # Check code-level isolation for Rust and Dart
+cbs realtime-feedback          # Real-time CBS compliance feedback during development
+cbs bus-simulator              # Simulate bus interactions for testing
 ```
 
 ## Tech Stack
@@ -148,3 +151,14 @@ When making breaking changes:
 2. **Message Versioning**: Add version to message names (`service.verb.v2`)
 3. **Migration Plan**: Document how dependent cells adapt
 4. **Backward Compatibility**: Consider supporting old subjects temporarily
+
+## New Enforcement Tools
+
+To ensure strict adherence to CBS principles, the following tools have been added:
+
+- **Code Isolation Validation**: Use `cbs validate-code-isolation` to statically analyze Rust and Dart code for direct cell dependencies or imports, enforcing bus-only communication.
+- **Message Contract Validation**: Enhanced `generate_cell_map.py` to validate that all published subjects have corresponding subscribers and vice versa, preventing orphaned messages.
+- **Real-Time Feedback**: Use `cbs realtime-feedback` to get immediate warnings during development if CBS principles are violated, such as direct cell communication attempts.
+- **Bus Simulation Testing**: Use `cbs bus-simulator` to simulate bus interactions, testing cell communication without a real bus to ensure proper message handling.
+
+These tools are integrated into the development workflow to provide continuous enforcement of CBS standards at every stage of development.
