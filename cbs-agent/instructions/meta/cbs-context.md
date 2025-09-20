@@ -13,10 +13,12 @@ encoding: UTF-8
 **Cell Body System (CBS)** follows modular biological principles:
 
 - **🚌 Bus-Only Communication**: Cells MUST ONLY communicate through the bus - never direct cell-to-cell calls
-- **📝 Spec-First**: Every cell has `ai/spec.md` defining its interface and behavior before implementation
-- **🧩 Modular Design**: Cells can be large and contain internal components, but must be modular, reusable, and expandable
+- **📝 Spec-First**: Every cell has `ai/spec.md` defining its interface and behavior before implementation  
+- **🧩 Modular Design**: Cells can be large internally but must be reusable and expandable
 - **🏷️ Typed Contracts**: All messages use typed envelopes with `cbs.<service>.<verb>` subjects
 - **🧪 Test-Driven**: Unit tests for logic, integration tests for bus handling
+
+*For complete standards, see `cbs-agent/standards/cbs-standards.md`*
 
 ## CBS Cell Standards
 

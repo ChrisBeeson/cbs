@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS - Unified Cell Body System CLI Tool
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "CBS - Cell Body System Unified CLI"
+  echo
+  echo "Usage: cbs <command> [args...]"
+  echo
+  echo "Workflow Commands (NEW):"
+  echo "  workflow <command>                    Manage iterative development workflow"
+  echo "  app-create <app_name>                 Create new CBS application with workflow"
+  echo "  iterate 'description'                 Create new iteration in current phase"
+  echo "  status                                Show workflow and application status"
+  echo
+  echo "Core Commands:"
+  echo "  validate [--specs|--envelopes|--map]  Validate specs and generate artifacts"
+  echo "  cell <action> [args...]               Cell operations"
+  echo "  app-spec <app_name>                   Create/update app specification"
+  echo "  regenerate <app> <cell>               Regenerate cell from spec"
+  echo "  context <app_name>                    Set application context"
+  echo "  focus <cell_name>                     Focus on specific cell"
+  echo "  work <app> <cell>                     Start work session"
+  echo "  isolation [--app|--all]               Validate cell isolation"
+  echo
+  echo "Cell actions:"
+  echo "  generate                              Generate catalog (MD + JSON)"
+  echo "  search [--language L] [--category C]  Search shareable cells"
+  echo "  install <cellId> <app>                Install cell into app"
+  echo
+  echo "Workflow Examples:"
+  echo "  cbs app-create my_new_app             Create app with workflow tracking"
+  echo "  cbs status                            Show current workflow status"
+  echo "  cbs iterate 'Added user authentication' Create new iteration"
+  echo "  cbs workflow rollback 2               Rollback to iteration 2"
+  echo
+  echo "Traditional Examples:"
+  echo "  cbs validate --specs                  Validate only cell specifications"
+  echo "  cbs cell search --language dart       Search for Dart cells"
+  echo "  cbs work flutter_flow_web flow_ui     Start working on flow_ui cell"
+}
+
+case "${1:-}" in
+  # New workflow commands
+  workflow)
+    shift
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" "$@"
+    ;;
+  app-create)
+    shift
+    if [ $# -lt 1 ]; then
+      echo "Usage: cbs app-create <app_name>"
+      exit 1
+    fi
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" init "$@"
+    ;;
+  iterate)
+    shift
+    if [ $# -lt 1 ]; then
+      echo "Usage: cbs iterate 'description'"
+      exit 1
+    fi
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" iterate --description "$@"
+    ;;
+  status)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" status
+    ;;
+    
+  # Existing commands
+  validate)
+    shift
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-validate-spec" "$@"
+    ;;
+  cell)
+    shift
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell" "$@"
+    ;;
+  app-spec)
+    shift
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-app-spec" "$@"
+    ;;
+  regenerate)
+    shift
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-regenerate-cell" "$@"
+    ;;
+  context)
+    shift
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-app-context" "$@"
+    ;;
+  focus)
+    shift
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell-focus" "$@"
+    ;;
+  work)
+    shift
+    if [ $# -lt 2 ]; then
+      echo "Usage: cbs work <app> <cell>"
+      exit 1
+    fi
+    # Set context and focus in one command
+    "$ROOT_DIR/cbs-agent/scripts/cbs-app-context" "$1"
+    "$ROOT_DIR/cbs-agent/scripts/cbs-cell-focus" "$2"
+    echo "✅ Work session started: $1/$2"
+    ;;
+  isolation)
+    shift
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-validate-isolation" "$@"
+    ;;
+  --help|-h|help)
+    usage
+    ;;
+  "")
+    usage
+    exit 1
+    ;;
+  *)
+    echo "Unknown command: $1"
+    usage
+    exit 1
+    ;;
+esac

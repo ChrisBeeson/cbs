@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-# CBS Agent-OS: Cell List - wrapper for cbs-cell-focus --list
-# Provides a convenient way to list cells in current application
-
-exec "$(dirname "$0")/cbs-cell-focus" --list
-

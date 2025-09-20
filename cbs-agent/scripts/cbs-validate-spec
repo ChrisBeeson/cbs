@@ -3,21 +3,45 @@ set -euo pipefail
 
 ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
-echo "🧪 CBS Spec Validation"
+usage() {
+  echo "Usage: cbs-validate-spec [--map-only|--specs-only|--envelopes-only]"
+  echo "Validates CBS specifications, envelopes, and generates cell map"
+}
+
+SPECS=true
+ENVELOPES=true
+MAP=true
+
+case "${1:-all}" in
+  --specs-only) ENVELOPES=false; MAP=false ;;
+  --envelopes-only) SPECS=false; MAP=false ;;
+  --map-only) SPECS=false; ENVELOPES=false ;;
+  --help|-h) usage; exit 0 ;;
+  all) ;;
+  *) echo "Unknown option: $1"; usage; exit 1 ;;
+esac
+
+echo "🧪 CBS Validation Suite"
 echo "======================"
 
-echo "1) Validating cell specs (ai/spec.md)"
-"$ROOT_DIR/cbs-agent/scripts/validate_spec.py" || true
+if [ "$SPECS" = true ]; then
+  echo "📋 Validating cell specs..."
+  "$ROOT_DIR/cbs-agent/scripts/validate_spec.py"
+fi
+
+if [ "$ENVELOPES" = true ]; then
+  echo
+  echo "📨 Validating envelope schemas..."
+  "$ROOT_DIR/cbs-agent/scripts/validate_envelopes.sh"
+fi
+
+if [ "$MAP" = true ]; then
+  echo
+  echo "🗺️  Generating cell map..."
+  "$ROOT_DIR/cbs-agent/scripts/generate_cell_map.py"
+fi
 
 echo
-echo "2) Validating envelope schema samples"
-"$ROOT_DIR/cbs-agent/scripts/validate_envelopes.sh" || true
-
-echo
-echo "3) Generating cell map"
-"$ROOT_DIR/cbs-agent/scripts/generate_cell_map.py" || true
-
-echo
-echo "Done."
+echo "✅ Validation complete"
 
 
