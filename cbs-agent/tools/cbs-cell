@@ -1,0 +1,376 @@
+#!/bin/bash
+# CBS Framework - New Cell Scaffolding Tool
+set -e
+
+show_usage() {
+    echo "Usage: cbs-cell create <cell-name> --app <app-name> --type <type> --lang <language>"
+    echo ""
+    echo "Arguments:"
+    echo "  cell-name     Name of the cell (snake_case)"
+    echo "  --app         Application name"
+    echo "  --type        Cell type: ui|io|logic|integration|storage"
+    echo "  --lang        Language: rust|dart|python"
+    echo ""
+    echo "Example:"
+    echo "  cbs-cell create user_service --app my_app --type logic --lang rust"
+}
+
+# Parse arguments
+if [ "$1" != "create" ]; then
+    show_usage
+    exit 1
+fi
+
+CELL_NAME="$2"
+shift 2
+
+APP_NAME=""
+CELL_TYPE=""
+LANGUAGE=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --app)
+            APP_NAME="$2"
+            shift 2
+            ;;
+        --type)
+            CELL_TYPE="$2"
+            shift 2
+            ;;
+        --lang)
+            LANGUAGE="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Validate inputs
+if [ -z "$CELL_NAME" ] || [ -z "$APP_NAME" ] || [ -z "$CELL_TYPE" ] || [ -z "$LANGUAGE" ]; then
+    echo "❌ Missing required arguments"
+    show_usage
+    exit 1
+fi
+
+# Validate cell type
+case $CELL_TYPE in
+    ui|io|logic|integration|storage)
+        ;;
+    *)
+        echo "❌ Invalid cell type: $CELL_TYPE"
+        echo "Valid types: ui, io, logic, integration, storage"
+        exit 1
+        ;;
+esac
+
+# Validate language
+case $LANGUAGE in
+    rust|dart|python)
+        ;;
+    *)
+        echo "❌ Invalid language: $LANGUAGE"
+        echo "Valid languages: rust, dart, python"
+        exit 1
+        ;;
+esac
+
+CELL_DIR="applications/$APP_NAME/cells/$CELL_NAME"
+
+# Check if cell already exists
+if [ -d "$CELL_DIR" ]; then
+    echo "❌ Cell $CELL_NAME already exists in $APP_NAME"
+    exit 1
+fi
+
+echo "🧬 Creating new CBS cell: $CELL_NAME"
+echo "   App: $APP_NAME"
+echo "   Type: $CELL_TYPE"
+echo "   Language: $LANGUAGE"
+
+# Create directory structure
+mkdir -p "$CELL_DIR"/{ai,lib,test}
+
+# Create cell specification
+cat > "$CELL_DIR/ai/spec.md" << EOF
+# $CELL_NAME Cell Specification
+
+## Metadata
+- **ID**: $CELL_NAME
+- **Name**: $(echo "$CELL_NAME" | tr '_' ' ' | sed 's/\b\w/\U&/g')
+- **Version**: 1.0.0
+- **Language**: $LANGUAGE
+- **Category**: $CELL_TYPE
+- **Purpose**: [Brief description of cell's responsibility]
+
+## Interface
+
+### Subjects
+- **Subscribe**: \`cbs.$CELL_NAME.{verb}\`
+- **Publish**: \`cbs.{other_service}.{verb}\`
+
+### Envelope
+Uses standard CBS Envelope with:
+- Schema: \`$CELL_NAME.{verb}.v1\`
+- Payload: [Define payload structure]
+- Correlation ID: UUID v4
+
+## Implementation
+
+### Core Logic
+[Describe the main logic/functionality]
+
+### Dependencies
+- CBS Framework core contracts
+- [List any other dependencies]
+
+### Error Handling
+- Publishes error envelopes on failure
+- Logs errors with correlation ID
+- [Specific error scenarios]
+
+## Testing
+
+### Unit Tests
+- [ ] Core logic validation
+- [ ] Error handling
+- [ ] Edge cases
+
+### Integration Tests  
+- [ ] Message handling
+- [ ] Bus communication
+- [ ] End-to-end flows
+
+## Notes
+[Any additional notes or considerations]
+EOF
+
+# Create basic implementation based on language
+case $LANGUAGE in
+    rust)
+        # Create Cargo.toml
+        cat > "$CELL_DIR/Cargo.toml" << EOF
+[package]
+name = "${CELL_NAME}_cell"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+cbs_framework = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+mockito = { workspace = true }
+EOF
+
+        # Create basic lib.rs
+        cat > "$CELL_DIR/lib/$CELL_NAME.rs" << EOF
+use cbs_framework::{Cell, Envelope, BusError, BodyBus};
+use serde::{Deserialize, Serialize};
+use async_trait::async_trait;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ${CELL_NAME^}Cell {
+    id: String,
+}
+
+impl ${CELL_NAME^}Cell {
+    pub fn new() -> Self {
+        Self {
+            id: "$CELL_NAME".to_string(),
+        }
+    }
+}
+
+#[async_trait]
+impl Cell for ${CELL_NAME^}Cell {
+    fn id(&self) -> &str {
+        &self.id
+    }
+
+    fn subjects(&self) -> Vec<&str> {
+        vec!["cbs.$CELL_NAME.*"]
+    }
+
+    async fn register(&self, bus: &dyn BodyBus) -> Result<(), BusError> {
+        // Register message handlers
+        bus.subscribe("cbs.$CELL_NAME.process", Box::new(|envelope| {
+            // Handle message
+            Box::pin(async move {
+                // TODO: Implement message handling
+                Ok(envelope)
+            })
+        })).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cell_creation() {
+        let cell = ${CELL_NAME^}Cell::new();
+        assert_eq!(cell.id(), "$CELL_NAME");
+    }
+}
+EOF
+        ;;
+    dart)
+        # Create pubspec.yaml
+        cat > "$CELL_DIR/pubspec.yaml" << EOF
+name: ${CELL_NAME}_cell
+description: $CELL_NAME cell for CBS application
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  cbs_sdk:
+    path: ../../../shared_cells/dart/cbs_sdk
+
+dev_dependencies:
+  test: ^1.24.0
+  mockito: ^5.4.2
+EOF
+
+        # Create basic Dart implementation
+        cat > "$CELL_DIR/lib/${CELL_NAME}_cell.dart" << EOF
+import 'dart:async';
+import 'package:cbs_sdk/cbs_sdk.dart';
+
+class ${CELL_NAME^}Cell implements Cell {
+  @override
+  String get id => '$CELL_NAME';
+
+  @override
+  List<String> get subjects => ['cbs.$CELL_NAME.*'];
+
+  @override
+  Future<void> register(Bus bus) async {
+    await bus.subscribe('cbs.$CELL_NAME.process', _handleProcess);
+  }
+
+  Future<Envelope> _handleProcess(Envelope envelope) async {
+    // TODO: Implement message handling
+    return envelope.createResponse({'status': 'processed'});
+  }
+}
+EOF
+        ;;
+    python)
+        # Create basic Python implementation
+        cat > "$CELL_DIR/lib/${CELL_NAME}.py" << EOF
+from typing import List, Dict, Any
+from cbs_sdk import Cell, Bus, Envelope
+
+class ${CELL_NAME^}Cell(Cell):
+    @property
+    def id(self) -> str:
+        return "$CELL_NAME"
+    
+    @property 
+    def subjects(self) -> List[str]:
+        return ["cbs.$CELL_NAME.*"]
+    
+    async def register(self, bus: Bus) -> None:
+        await bus.subscribe("cbs.$CELL_NAME.process", self._handle_process)
+    
+    async def _handle_process(self, envelope: Envelope) -> Envelope:
+        # TODO: Implement message handling
+        return envelope.create_response({"status": "processed"})
+EOF
+        ;;
+esac
+
+# Create basic test file
+case $LANGUAGE in
+    rust)
+        cat > "$CELL_DIR/test/${CELL_NAME}_test.rs" << EOF
+use ${CELL_NAME}_cell::${CELL_NAME^}Cell;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cell_creation() {
+        let cell = ${CELL_NAME^}Cell::new();
+        assert_eq!(cell.id(), "$CELL_NAME");
+    }
+
+    #[test]
+    fn test_subjects() {
+        let cell = ${CELL_NAME^}Cell::new();
+        let subjects = cell.subjects();
+        assert!(subjects.contains(&"cbs.$CELL_NAME.*"));
+    }
+}
+EOF
+        ;;
+    dart)
+        cat > "$CELL_DIR/test/${CELL_NAME}_test.dart" << EOF
+import 'package:test/test.dart';
+import 'package:${CELL_NAME}_cell/${CELL_NAME}_cell.dart';
+
+void main() {
+  group('${CELL_NAME^}Cell', () {
+    late ${CELL_NAME^}Cell cell;
+
+    setUp(() {
+      cell = ${CELL_NAME^}Cell();
+    });
+
+    test('should have correct id', () {
+      expect(cell.id, equals('$CELL_NAME'));
+    });
+
+    test('should have correct subjects', () {
+      expect(cell.subjects, contains('cbs.$CELL_NAME.*'));
+    });
+  });
+}
+EOF
+        ;;
+    python)
+        cat > "$CELL_DIR/test/test_${CELL_NAME}.py" << EOF
+import pytest
+from lib.${CELL_NAME} import ${CELL_NAME^}Cell
+
+class Test${CELL_NAME^}Cell:
+    def setup_method(self):
+        self.cell = ${CELL_NAME^}Cell()
+    
+    def test_cell_id(self):
+        assert self.cell.id == "$CELL_NAME"
+    
+    def test_subjects(self):
+        assert "cbs.$CELL_NAME.*" in self.cell.subjects
+EOF
+        ;;
+esac
+
+echo "✅ Cell '$CELL_NAME' created successfully!"
+echo ""
+echo "Files created:"
+echo "  $CELL_DIR/ai/spec.md"
+echo "  $CELL_DIR/lib/"
+echo "  $CELL_DIR/test/"
+echo ""
+echo "Next steps:"
+echo "  1. Edit $CELL_DIR/ai/spec.md to define the cell interface"
+echo "  2. Implement the cell logic in $CELL_DIR/lib/"
+echo "  3. Add tests in $CELL_DIR/test/"
+echo "  4. Run tests: cd $CELL_DIR && cargo test (or dart test, pytest)"
+
+

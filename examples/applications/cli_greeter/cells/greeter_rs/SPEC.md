@@ -256,7 +256,7 @@ No configuration required - cell uses default behavior.
 
 ## References
 
-- [CBS Architecture Documentation](../../../ai/master_build_specs.md)
-- [Cell Development Guidelines](../../../ai/.agent-os/standards/best-practices.md)
+- [CBS Architecture Documentation](../../../docs/architecture.md)
+- [Cell Development Guidelines](../../../../cbs-agent/standards/best-practices.md)
 - [Message Schema Definitions](../../../ai/docs/schemas/)
 - [Error Code Reference](../../../ai/docs/error_codes.md)

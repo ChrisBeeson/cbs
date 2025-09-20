@@ -1,0 +1,293 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Agent-OS: Cell Isolation Validator
+# Validates that cells maintain biological isolation (bus-only communication)
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+CONTEXT_FILE="$ROOT_DIR/.cbs-context"
+
+show_help() {
+    echo "CBS Cell Isolation Validator"
+    echo ""
+    echo "USAGE:"
+    echo "    cbs-validate-isolation              Validate current cell"
+    echo "    cbs-validate-isolation <cell>       Validate specific cell"
+    echo "    cbs-validate-isolation --app        Validate all cells in current app"
+    echo "    cbs-validate-isolation --all        Validate all cells in project"
+    echo ""
+    echo "VALIDATION RULES:"
+    echo "    ❌ No direct imports between cells"
+    echo "    ❌ No shared state between cells"
+    echo "    ❌ No direct method calls between cells"
+    echo "    ✅ Only bus-based communication allowed"
+    echo ""
+    echo "This enforces the cardinal rule: Cells MUST ONLY communicate through the bus"
+}
+
+validate_cell() {
+    local app_name="$1"
+    local cell_name="$2"
+    local cell_path="$ROOT_DIR/examples/applications/$app_name/cells/$cell_name"
+    
+    echo "🔍 Validating cell: $app_name/$cell_name"
+    echo "   Path: $cell_path"
+    
+    if [ ! -d "$cell_path" ]; then
+        echo "❌ Cell directory not found"
+        return 1
+    fi
+    
+    local violations=0
+    local warnings=0
+    
+    # Check for direct cell imports (Rust)
+    if find "$cell_path" -name "*.rs" -type f | head -1 | grep -q .; then
+        echo "   🦀 Checking Rust files..."
+        
+        # Look for use statements importing other cells
+        local rust_imports=$(find "$cell_path" -name "*.rs" -exec grep -l "use.*cells::" {} \; 2>/dev/null || true)
+        if [ -n "$rust_imports" ]; then
+            echo "   ❌ VIOLATION: Direct cell imports found in Rust files:"
+            echo "$rust_imports" | while read -r file; do
+                echo "      $file"
+                grep -n "use.*cells::" "$file" | sed 's/^/         /'
+            done
+            violations=$((violations + 1))
+        fi
+        
+        # Look for external cell references
+        local cell_refs=$(find "$cell_path" -name "*.rs" -exec grep -l "Cell::" {} \; 2>/dev/null | xargs grep -l "use.*Cell" 2>/dev/null || true)
+        if [ -n "$cell_refs" ]; then
+            echo "   ⚠️  WARNING: Possible direct cell references:"
+            echo "$cell_refs" | while read -r file; do
+                echo "      $file"
+                grep -n "Cell::" "$file" | head -3 | sed 's/^/         /'
+            done
+            warnings=$((warnings + 1))
+        fi
+    fi
+    
+    # Check for direct cell imports (Dart)
+    if find "$cell_path" -name "*.dart" -type f | head -1 | grep -q .; then
+        echo "   🎯 Checking Dart files..."
+        
+        # Look for imports of other cells
+        local dart_imports=$(find "$cell_path" -name "*.dart" -exec grep -l "import.*cells/" {} \; 2>/dev/null || true)
+        if [ -n "$dart_imports" ]; then
+            echo "   ❌ VIOLATION: Direct cell imports found in Dart files:"
+            echo "$dart_imports" | while read -r file; do
+                echo "      $file"
+                grep -n "import.*cells/" "$file" | sed 's/^/         /'
+            done
+            violations=$((violations + 1))
+        fi
+        
+        # Look for relative imports that might cross cell boundaries
+        local relative_imports=$(find "$cell_path" -name "*.dart" -exec grep -l "import.*\.\./\.\." {} \; 2>/dev/null || true)
+        if [ -n "$relative_imports" ]; then
+            echo "   ⚠️  WARNING: Relative imports that might cross cell boundaries:"
+            echo "$relative_imports" | while read -r file; do
+                echo "      $file"
+                grep -n "import.*\.\./\.\." "$file" | head -3 | sed 's/^/         /'
+            done
+            warnings=$((warnings + 1))
+        fi
+    fi
+    
+    # Check for proper bus usage
+    local bus_usage=false
+    
+    # Rust: Look for BodyBus usage
+    if find "$cell_path" -name "*.rs" -exec grep -l "BodyBus\|bus\.request\|bus\.subscribe" {} \; 2>/dev/null | head -1 | grep -q .; then
+        bus_usage=true
+        echo "   ✅ Rust: Bus communication detected"
+    fi
+    
+    # Dart: Look for bus usage
+    if find "$cell_path" -name "*.dart" -exec grep -l "BodyBus\|bus\.request\|bus\.subscribe" {} \; 2>/dev/null | head -1 | grep -q .; then
+        bus_usage=true
+        echo "   ✅ Dart: Bus communication detected"
+    fi
+    
+    if [ "$bus_usage" = false ]; then
+        echo "   ⚠️  WARNING: No bus communication detected"
+        echo "      Cells should use BodyBus for communication"
+        warnings=$((warnings + 1))
+    fi
+    
+    # Check cell specification
+    local spec_file="$cell_path/ai/spec.md"
+    if [ -f "$spec_file" ]; then
+        echo "   ✅ Cell specification found"
+        
+        # Check for message definitions
+        if grep -q "^Messages:" "$spec_file" 2>/dev/null; then
+            echo "   ✅ Message contracts defined"
+        else
+            echo "   ⚠️  WARNING: No message contracts in specification"
+            warnings=$((warnings + 1))
+        fi
+    else
+        echo "   ❌ VIOLATION: Missing cell specification at $spec_file"
+        violations=$((violations + 1))
+    fi
+    
+    # Summary for this cell
+    echo ""
+    if [ $violations -eq 0 ]; then
+        if [ $warnings -eq 0 ]; then
+            echo "   ✅ Cell '$cell_name' passes isolation validation"
+        else
+            echo "   ⚠️  Cell '$cell_name' has $warnings warnings"
+        fi
+    else
+        echo "   ❌ Cell '$cell_name' has $violations violations and $warnings warnings"
+    fi
+    echo ""
+    
+    return $violations
+}
+
+validate_current_cell() {
+    if [ ! -f "$CONTEXT_FILE" ]; then
+        echo "❌ No work context set"
+        echo "   Use: cbs-work-start <app> <cell>"
+        return 1
+    fi
+    
+    source "$CONTEXT_FILE"
+    
+    if [ -z "${CBS_CURRENT_APP:-}" ] || [ -z "${CBS_CURRENT_CELL:-}" ]; then
+        echo "❌ No current cell in work context"
+        echo "   Use: cbs-work-start <app> <cell>"
+        return 1
+    fi
+    
+    validate_cell "$CBS_CURRENT_APP" "$CBS_CURRENT_CELL"
+}
+
+validate_app() {
+    if [ ! -f "$CONTEXT_FILE" ]; then
+        echo "❌ No application context set"
+        echo "   Use: cbs-app-context <app>"
+        return 1
+    fi
+    
+    source "$CONTEXT_FILE"
+    
+    if [ -z "${CBS_CURRENT_APP:-}" ]; then
+        echo "❌ No current application in context"
+        return 1
+    fi
+    
+    local app_path="$ROOT_DIR/examples/applications/$CBS_CURRENT_APP"
+    local cells_path="$app_path/cells"
+    
+    echo "🧬 Validating all cells in application '$CBS_CURRENT_APP'"
+    echo ""
+    
+    local total_violations=0
+    local total_warnings=0
+    local cell_count=0
+    
+    for cell_dir in "$cells_path"/*/; do
+        if [ -d "$cell_dir" ]; then
+            local cell_name=$(basename "$cell_dir")
+            validate_cell "$CBS_CURRENT_APP" "$cell_name"
+            local result=$?
+            total_violations=$((total_violations + result))
+            cell_count=$((cell_count + 1))
+        fi
+    done
+    
+    echo "📊 Application Validation Summary:"
+    echo "   Cells checked: $cell_count"
+    echo "   Total violations: $total_violations"
+    
+    if [ $total_violations -eq 0 ]; then
+        echo "   ✅ All cells pass isolation validation!"
+    else
+        echo "   ❌ $total_violations cells have violations"
+        echo ""
+        echo "🧬 CBS Reminder: Cells MUST ONLY communicate through the bus"
+        echo "   • No direct imports between cells"
+        echo "   • No shared state between cells"
+        echo "   • Use BodyBus for all communication"
+    fi
+    
+    return $total_violations
+}
+
+validate_all() {
+    echo "🧬 Validating ALL cells in CBS project"
+    echo ""
+    
+    local apps_path="$ROOT_DIR/examples/applications"
+    local total_violations=0
+    local total_cells=0
+    
+    for app_dir in "$apps_path"/*/; do
+        if [ -d "$app_dir" ]; then
+            local app_name=$(basename "$app_dir")
+            local cells_path="$app_dir/cells"
+            
+            if [ -d "$cells_path" ]; then
+                echo "📦 Application: $app_name"
+                
+                for cell_dir in "$cells_path"/*/; do
+                    if [ -d "$cell_dir" ]; then
+                        local cell_name=$(basename "$cell_dir")
+                        validate_cell "$app_name" "$cell_name"
+                        local result=$?
+                        total_violations=$((total_violations + result))
+                        total_cells=$((total_cells + 1))
+                    fi
+                done
+            fi
+        fi
+    done
+    
+    echo "🌍 Project-Wide Validation Summary:"
+    echo "   Total cells checked: $total_cells"
+    echo "   Total violations: $total_violations"
+    
+    if [ $total_violations -eq 0 ]; then
+        echo "   ✅ ALL cells maintain biological isolation!"
+        echo "   🧬 CBS principles successfully enforced"
+    else
+        echo "   ❌ $total_violations cells violate isolation principles"
+        echo ""
+        echo "🧬 CBS Reminder: The cardinal rule is bus-only communication"
+        echo "   Fix violations to maintain biological isolation"
+    fi
+    
+    return $total_violations
+}
+
+# Main command handling
+case "${1:-}" in
+    --help|-h)
+        show_help
+        ;;
+    --app|-a)
+        validate_app
+        ;;
+    --all)
+        validate_all
+        ;;
+    "")
+        validate_current_cell
+        ;;
+    *)
+        # Validate specific cell (requires app context)
+        if [ ! -f "$CONTEXT_FILE" ]; then
+            echo "❌ No application context for cell validation"
+            echo "   Use: cbs-app-context <app>"
+            exit 1
+        fi
+        source "$CONTEXT_FILE"
+        validate_cell "$CBS_CURRENT_APP" "$1"
+        ;;
+esac
+

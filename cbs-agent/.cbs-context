@@ -1,0 +1,7 @@
+# CBS Agent-OS Context
+# This file maintains current application and cell context for cell-based development
+
+CBS_CURRENT_APP="flutter_flow_web"
+CBS_CURRENT_CELL="flow_ui"
+CBS_WORK_MODE="cell_focused"
+CBS_CONTEXT_SET_AT="2025-09-20T00:09:49Z"

@@ -92,3 +92,4 @@ cd applications/my_app && cargo test
 cd applications/my_app/cells/my_cell && cargo test
 ```
 
+

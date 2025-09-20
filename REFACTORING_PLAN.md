@@ -112,3 +112,4 @@ my-project/
 - **Dependency Management**: Clean separation of framework vs app dependencies
 - **Documentation**: Clear docs for both framework developers and users
 
+

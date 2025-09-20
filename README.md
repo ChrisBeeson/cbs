@@ -1,6 +1,24 @@
 # Cell Body System (CBS) Framework
 
-**CBS** is a modular framework for building microservice-like applications inspired by biological systems. Build applications as collections of isolated "cells" that communicate through a message bus.
+**CBS** is a **revolutionary framework** for building applications inspired by biological systems. Unlike traditional architectures, cells communicate **only** through a message bus - never directly.
+
+**This is not just another framework - it's a paradigm shift that enables true modularity, language freedom, and natural scaling.**
+
+## 🧬 The CBS Way
+
+**Biological Isolation**: Cells MUST ONLY communicate through the bus
+- No direct method calls between cells
+- No shared objects or state  
+- No imports of other cells
+- All communication via typed messages
+
+**Why This Revolutionary Approach Matters**:
+- ✅ **Zero coupling** - cells don't know about each other
+- ✅ **Polyglot** - mix Rust, Dart, Python naturally
+- ✅ **Fault isolation** - cell failures don't cascade
+- ✅ **Independent scaling** - scale cells individually
+- ✅ **Hot swapping** - replace cells without system restart
+- ✅ **Observable** - every interaction is visible
 
 ## 🧬 Core Concepts
 
@@ -84,7 +102,7 @@ my-project/
 - **`integration`** - External service integrations (APIs, databases)
 - **`storage`** - Data persistence and caching
 
-### Communication Rules [[memory:8924008]]
+### Communication Rules
 - **🚌 Bus-Only**: Cells MUST ONLY communicate through the bus
 - **🏷️ Typed Messages**: All communication uses typed envelopes
 - **📝 Spec-First**: Define interface in `ai/spec.md` before implementation
@@ -154,11 +172,15 @@ cd applications/my_app/cells/my_cell && cargo test
 
 ## 📖 Documentation
 
+**Start Here:**
+- **[The CBS Way](docs/the-cbs-way.md)** - **Read this first!** Understanding the revolutionary approach
+- **[Quick Reference](docs/quick-reference.md)** - Essential patterns and examples
+
+**Deep Dive:**
 - **[Getting Started](docs/getting-started.md)** - Detailed setup guide
 - **[Architecture](docs/architecture.md)** - Framework architecture overview
-- **[Cell Development](docs/cell-development.md)** - How to build cells
-- **[Message Contracts](docs/message-contracts.md)** - Communication patterns
-- **[Best Practices](docs/best-practices.md)** - Development guidelines
+- **[Framework Usage](docs/framework-usage.md)** - Using CBS as a base framework
+- **[Agent-OS Guide](docs/agent-os-guide.md)** - Cell-based development workflow
 
 ## 🔧 Tech Stack
 

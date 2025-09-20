@@ -1,0 +1,223 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Agent-OS: Start Cell-Focused Work Session
+# Combines app context and cell focus for development workflow
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+CONTEXT_FILE="$ROOT_DIR/.cbs-context"
+
+show_help() {
+    echo "CBS Work Session Manager"
+    echo ""
+    echo "USAGE:"
+    echo "    cbs-work-start <app> <cell>    Start working on specific cell"
+    echo "    cbs-work-start --status        Show current work session"
+    echo "    cbs-work-start --stop          Stop current work session"
+    echo ""
+    echo "EXAMPLES:"
+    echo "    cbs-work-start flutter_flow_web flow_ui"
+    echo "    cbs-work-start cli_greeter greeter_rs"
+    echo ""
+    echo "This enforces cell-based development by setting both app and cell context."
+}
+
+show_status() {
+    if [ ! -f "$CONTEXT_FILE" ]; then
+        echo "📭 No work session active"
+        echo ""
+        echo "Start a work session:"
+        echo "    cbs-work-start <app> <cell>"
+        return 0
+    fi
+    
+    source "$CONTEXT_FILE"
+    echo "🧬 CBS Work Session Status:"
+    echo ""
+    echo "📦 Application: ${CBS_CURRENT_APP:-<none>}"
+    echo "🔬 Cell: ${CBS_CURRENT_CELL:-<none>}"
+    echo "🎯 Mode: ${CBS_WORK_MODE:-<none>}"
+    echo "⏰ Started: ${CBS_CONTEXT_SET_AT:-<unknown>}"
+    echo ""
+    
+    # Validate session
+    local valid=true
+    
+    if [ -n "${CBS_CURRENT_APP:-}" ]; then
+        local app_path="$ROOT_DIR/examples/applications/$CBS_CURRENT_APP"
+        if [ -d "$app_path" ]; then
+            echo "✅ Application '$CBS_CURRENT_APP' valid"
+        else
+            echo "❌ Application '$CBS_CURRENT_APP' not found"
+            valid=false
+        fi
+    fi
+    
+    if [ -n "${CBS_CURRENT_CELL:-}" ] && [ -n "${CBS_CURRENT_APP:-}" ]; then
+        local cell_path="$ROOT_DIR/examples/applications/$CBS_CURRENT_APP/cells/$CBS_CURRENT_CELL"
+        if [ -d "$cell_path" ]; then
+            echo "✅ Cell '$CBS_CURRENT_CELL' valid"
+            
+            # Show cell info
+            local spec_file="$cell_path/ai/spec.md"
+            if [ -f "$spec_file" ]; then
+                echo ""
+                echo "🔬 Cell Details:"
+                local cell_type=$(grep -E "^Type:" "$spec_file" 2>/dev/null | cut -d: -f2 | xargs || echo "unknown")
+                echo "   Type: $cell_type"
+                echo "   Spec: $spec_file"
+                
+                # Show message contracts
+                local messages=$(grep -A 5 "^Messages:" "$spec_file" 2>/dev/null | grep -E "^\s*-" | head -3 | sed 's/^\s*-\s*//' || echo "")
+                if [ -n "$messages" ]; then
+                    echo "   Message Contracts:"
+                    echo "$messages" | while read -r msg; do
+                        echo "     • $msg"
+                    done
+                fi
+            fi
+        else
+            echo "❌ Cell '$CBS_CURRENT_CELL' not found"
+            valid=false
+        fi
+    fi
+    
+    if [ "$valid" = true ] && [ -n "${CBS_CURRENT_CELL:-}" ]; then
+        echo ""
+        echo "🛠️  Available Actions:"
+        echo "    cbs-cell-messages ${CBS_CURRENT_CELL}  Show message contracts"
+        echo "    cbs-validate-isolation                Check cell isolation"
+        echo "    # Run language-specific tests within the cell directory"
+    fi
+}
+
+start_work() {
+    local app_name="$1"
+    local cell_name="$2"
+    
+    echo "🧬 Starting CBS work session..."
+    echo ""
+    
+    # Validate application
+    local app_path="$ROOT_DIR/examples/applications/$app_name"
+    if [ ! -d "$app_path" ]; then
+        echo "❌ Application '$app_name' not found at $app_path"
+        echo ""
+        echo "Available applications:"
+        "$ROOT_DIR/scripts/agent-os/cbs-app-context" --list
+        return 1
+    fi
+    
+    if [ ! -f "$app_path/app.yaml" ]; then
+        echo "❌ Application '$app_name' missing app.yaml"
+        return 1
+    fi
+    
+    # Validate cell
+    local cell_path="$app_path/cells/$cell_name"
+    if [ ! -d "$cell_path" ]; then
+        echo "❌ Cell '$cell_name' not found at $cell_path"
+        echo ""
+        echo "Available cells in '$app_name':"
+        CBS_CURRENT_APP="$app_name" "$ROOT_DIR/scripts/agent-os/cbs-cell-focus" --list
+        return 1
+    fi
+    
+    # Set work context
+    cat > "$CONTEXT_FILE" << EOF
+# CBS Agent-OS Context
+# This file maintains current application and cell context for cell-based development
+
+CBS_CURRENT_APP="$app_name"
+CBS_CURRENT_CELL="$cell_name"
+CBS_WORK_MODE="cell_focused"
+CBS_CONTEXT_SET_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+EOF
+    
+    echo "✅ Work session started!"
+    echo ""
+    echo "📦 Application: $app_name"
+    echo "🔬 Cell: $cell_name"
+    echo "🎯 Mode: Cell-focused development"
+    echo ""
+    
+    # Show cell information
+    local spec_file="$cell_path/ai/spec.md"
+    if [ -f "$spec_file" ]; then
+        echo "🔬 Cell Information:"
+        local cell_type=$(grep -E "^Type:" "$spec_file" 2>/dev/null | cut -d: -f2 | xargs || echo "unknown")
+        local description=$(grep -E "^Description:" "$spec_file" 2>/dev/null | cut -d: -f2- | xargs || echo "")
+        
+        echo "   Type: $cell_type"
+        if [ -n "$description" ]; then
+            echo "   Description: $description"
+        fi
+        echo "   Specification: $spec_file"
+        
+        # Show message contracts
+        echo ""
+        echo "📨 Message Contracts:"
+        local messages=$(grep -A 10 "^Messages:" "$spec_file" 2>/dev/null | grep -E "^\s*-" | sed 's/^\s*-\s*//' || echo "")
+        if [ -n "$messages" ]; then
+            echo "$messages" | while read -r msg; do
+                echo "   • $msg"
+            done
+        else
+            echo "   (No messages defined - check spec)"
+        fi
+    else
+        echo "⚠️  Missing cell specification at $spec_file"
+        echo "   Consider creating spec with: cbs-cell-create --spec-only"
+    fi
+    
+    echo ""
+    echo "🛠️  Next Steps:"
+    echo "   1. Review cell specification: $spec_file"
+    echo "   2. Check message contracts: cbs-cell-messages $cell_name"
+    echo "   3. Test cell in isolation: cbs-work-test"
+    echo "   4. Validate bus-only communication: cbs-validate-isolation"
+    echo ""
+    echo "Remember: CBS cells MUST ONLY communicate through the bus! 🚌"
+}
+
+stop_work() {
+    if [ ! -f "$CONTEXT_FILE" ]; then
+        echo "📭 No work session to stop"
+        return 0
+    fi
+    
+    source "$CONTEXT_FILE"
+    rm -f "$CONTEXT_FILE"
+    
+    echo "✅ Work session stopped"
+    if [ -n "${CBS_CURRENT_APP:-}" ] && [ -n "${CBS_CURRENT_CELL:-}" ]; then
+        echo "📦 Was working on: $CBS_CURRENT_APP / $CBS_CURRENT_CELL"
+    fi
+    echo ""
+    echo "Start a new session with:"
+    echo "    cbs-work-start <app> <cell>"
+}
+
+# Main command handling
+case "${1:-}" in
+    --help|-h)
+        show_help
+        ;;
+    --status|-s)
+        show_status
+        ;;
+    --stop)
+        stop_work
+        ;;
+    "")
+        show_status
+        ;;
+    *)
+        if [ $# -lt 2 ]; then
+            echo "❌ Usage: cbs-work-start <app> <cell>"
+            echo "   Use --help for more information"
+            exit 1
+        fi
+        start_work "$1" "$2"
+        ;;
+esac

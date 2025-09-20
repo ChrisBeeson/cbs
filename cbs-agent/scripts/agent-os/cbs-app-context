@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+NEW="$ROOT_DIR/cbs-agent/scripts/cbs-app-context"
+if [ -x "$NEW" ]; then
+    exec "$NEW" "$@"
+fi
+
+# Fallback to existing logic if new path not present
+# CBS Agent-OS: Application Context Management
+CONTEXT_FILE="$ROOT_DIR/.cbs-context"
+
+show_help() {
+    echo "CBS Application Context Manager"
+    echo ""
+    echo "USAGE:"
+    echo "    cbs-app-context <app_name>    Set application context"
+    echo "    cbs-app-context --list        List available applications"
+    echo "    cbs-app-context --status      Show current context"
+    echo "    cbs-app-context --clear       Clear current context"
+}
+
+list_applications() {
+    echo "🔍 Available CBS Applications:"
+    echo ""
+    if [ ! -d "$ROOT_DIR/examples/applications" ]; then
+        echo "❌ No applications directory found"
+        return 1
+    fi
+    local found_apps=false
+    for app_dir in "$ROOT_DIR"/examples/applications/*/; do
+        if [ -d "$app_dir" ]; then
+            local app_name=$(basename "$app_dir")
+            local app_yaml="$app_dir/app.yaml"
+            if [ -f "$app_yaml" ]; then
+                echo "📦 $app_name"
+                if command -v yq >/dev/null 2>&1; then
+                    local desc=$(yq eval '.description // ""' "$app_yaml" 2>/dev/null || echo "")
+                    if [ -n "$desc" ]; then
+                        echo "   $desc"
+                    fi
+                fi
+                local cell_count=$(find "$app_dir/cells" -maxdepth 1 -type d 2>/dev/null | wc -l)
+                cell_count=$((cell_count - 1))
+                echo "   Cells: $cell_count"
+                echo ""
+                found_apps=true
+            fi
+        fi
+    done
+    if [ "$found_apps" = false ]; then
+        echo "📭 No CBS applications found in examples/applications/"
+        echo ""
+        echo "Create your first application:"
+        echo "    mkdir -p examples/applications/my_app/cells"
+        echo "    # Add app.yaml configuration"
+    fi
+}
+
+show_status() {
+    echo "🧬 CBS Agent-OS Status:"
+    echo ""
+    if [ -f "$CONTEXT_FILE" ]; then
+        source "$CONTEXT_FILE"
+        echo "📦 Application: ${CBS_CURRENT_APP:-<none>}"
+        echo "🔬 Cell Focus: ${CBS_CURRENT_CELL:-<none>}"
+        echo "🎯 Work Mode: ${CBS_WORK_MODE:-app_overview}"
+        if [ -n "${CBS_CURRENT_APP:-}" ]; then
+            local app_path="$ROOT_DIR/examples/applications/$CBS_CURRENT_APP"
+            if [ ! -d "$app_path" ]; then
+                echo "⚠️  Warning: Application '$CBS_CURRENT_APP' not found at $app_path"
+            else
+                echo "✅ Application context valid"
+            fi
+        fi
+        if [ -n "${CBS_CURRENT_CELL:-}" ] && [ -n "${CBS_CURRENT_APP:-}" ]; then
+            local cell_path="$ROOT_DIR/examples/applications/$CBS_CURRENT_APP/cells/$CBS_CURRENT_CELL"
+            if [ ! -d "$cell_path" ]; then
+                echo "⚠️  Warning: Cell '$CBS_CURRENT_CELL' not found at $cell_path"
+            else
+                echo "✅ Cell context valid"
+            fi
+        fi
+    else
+        echo "📭 No context set"
+        echo ""
+        echo "Set application context with:"
+        echo "    cbs-app-context <app_name>"
+    fi
+}
+
+set_context() {
+    local app_name="$1"
+    local app_path="$ROOT_DIR/examples/applications/$app_name"
+    if [ ! -d "$app_path" ]; then
+        echo "❌ Application '$app_name' not found at $app_path"
+        echo ""
+        echo "Available applications:"
+        list_applications
+        return 1
+    fi
+    if [ ! -f "$app_path/app.yaml" ]; then
+        echo "❌ Application '$app_name' missing app.yaml configuration"
+        return 1
+    fi
+    cat > "$CONTEXT_FILE" << EOF
+# CBS Agent-OS Context
+# This file maintains current application and cell context for cell-based development
+
+CBS_CURRENT_APP="$app_name"
+CBS_CURRENT_CELL=""
+CBS_WORK_MODE="app_overview"
+CBS_CONTEXT_SET_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+EOF
+    echo "✅ Application context set to '$app_name'"
+    echo ""
+    echo "🔬 Available cells in this application:"
+    "$ROOT_DIR/scripts/agent-os/cbs-cell-list"
+    echo ""
+    echo "Next steps:"
+    echo "    cbs-cell-focus <cell_name>    Focus on specific cell"
+    echo "    cbs-cell-list                 List all cells"
+    echo "    cbs-work-start $app_name <cell>  Start working on cell"
+}
+
+clear_context() {
+    if [ -f "$CONTEXT_FILE" ]; then
+        rm -f "$CONTEXT_FILE"
+        echo "✅ Context cleared"
+    else
+        echo "📭 No context to clear"
+    fi
+}
+
+case "${1:-}" in
+    --help|-h)
+        show_help
+        ;;
+    --list|-l)
+        list_applications
+        ;;
+    --status|-s)
+        show_status
+        ;;
+    --clear|-c)
+        clear_context
+        ;;
+    "")
+        show_status
+        ;;
+    *)
+        set_context "$1"
+        ;;
+esac

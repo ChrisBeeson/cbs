@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Agent-OS: Cell Message Contracts Display
+# Shows message contracts for a specific cell
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+CONTEXT_FILE="$ROOT_DIR/.cbs-context"
+
+show_help() {
+    echo "CBS Cell Message Contracts"
+    echo ""
+    echo "USAGE:"
+    echo "    cbs-cell-messages <cell_name>    Show message contracts for cell"
+    echo "    cbs-cell-messages                Show for current cell"
+    echo ""
+    echo "EXAMPLES:"
+    echo "    cbs-cell-messages flow_ui"
+    echo "    cbs-cell-messages user_service"
+}
+
+show_messages() {
+    local cell_name="$1"
+    
+    # Get app context
+    if [ ! -f "$CONTEXT_FILE" ]; then
+        echo "❌ No application context set"
+        echo "   Use: cbs-app-context <app>"
+        return 1
+    fi
+    
+    source "$CONTEXT_FILE"
+    if [ -z "${CBS_CURRENT_APP:-}" ]; then
+        echo "❌ No current application"
+        return 1
+    fi
+    
+    local cell_path="$ROOT_DIR/examples/applications/$CBS_CURRENT_APP/cells/$cell_name"
+    local spec_file="$cell_path/ai/spec.md"
+    
+    if [ ! -f "$spec_file" ]; then
+        echo "❌ Cell specification not found: $spec_file"
+        return 1
+    fi
+    
+    echo "📨 Message Contracts for '$cell_name'"
+    echo ""
+    echo "📋 Specification: $spec_file"
+    echo ""
+    
+    # Extract and display message contracts
+    if grep -q "^Messages:" "$spec_file" 2>/dev/null; then
+        echo "🚌 Bus Messages:"
+        # Extract everything after "Messages:" until next major section
+        awk '/^Messages:/{flag=1; next} /^[A-Z].*:$/{flag=0} flag' "$spec_file" | while IFS= read -r line; do
+            if [[ "$line" =~ ^[[:space:]]*- ]]; then
+                echo "   • ${line#*- }"
+            elif [[ "$line" =~ ^[[:space:]]*[a-z_]+\. ]]; then
+                echo "   📡 $line"
+            elif [ -n "$line" ]; then
+                echo "      $line"
+            fi
+        done
+    else
+        echo "⚠️  No message contracts defined in specification"
+    fi
+    
+    echo ""
+    echo "💡 Remember: All cell communication MUST use these message contracts"
+    echo "   Subject format: cbs.{service}.{verb}"
+}
+
+# Main logic
+if [ $# -eq 0 ]; then
+    # Use current cell
+    if [ -f "$CONTEXT_FILE" ]; then
+        source "$CONTEXT_FILE"
+        if [ -n "${CBS_CURRENT_CELL:-}" ]; then
+            show_messages "$CBS_CURRENT_CELL"
+        else
+            echo "❌ No current cell focus"
+            echo "   Use: cbs-cell-focus <cell>"
+            exit 1
+        fi
+    else
+        echo "❌ No context set"
+        echo "   Use: cbs-work-start <app> <cell>"
+        exit 1
+    fi
+else
+    case "$1" in
+        --help|-h)
+            show_help
+            ;;
+        *)
+            show_messages "$1"
+            ;;
+    esac
+fi
+

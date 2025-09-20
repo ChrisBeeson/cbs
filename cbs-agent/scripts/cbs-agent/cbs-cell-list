@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+LEGACY="$ROOT_DIR/scripts/agent-os/cbs-cell-list"
+if [ -x "$LEGACY" ]; then
+    exec "$LEGACY" "$@"
+fi
+
+echo "cbs-cell-list: legacy script not found at $LEGACY"
+echo "Please implement native logic here if migrating away from scripts/agent-os."
+exit 1
+
