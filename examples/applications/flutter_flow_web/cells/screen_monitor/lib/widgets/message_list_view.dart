@@ -85,7 +85,7 @@ class _MessageListViewState extends State<MessageListView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.error.withOpacity(0.1),
+                      color: theme.colorScheme.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -131,20 +131,20 @@ class _MessageListViewState extends State<MessageListView> {
             Icon(
               Icons.message_outlined,
               size: 64,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
               'No messages yet',
               style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Bus messages will appear here in real-time',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -182,11 +182,11 @@ class _MessageListViewState extends State<MessageListView> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               border: Border.all(
-                color: messageColor.withOpacity(0.2),
+                color: messageColor.withValues(alpha: 0.2),
               ),
               borderRadius: BorderRadius.circular(8),
               color: isExpanded 
-                ? messageColor.withOpacity(0.05)
+                ? messageColor.withValues(alpha: 0.05)
                 : Colors.transparent,
             ),
             child: Column(
@@ -216,7 +216,7 @@ class _MessageListViewState extends State<MessageListView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: messageColor.withOpacity(0.1),
+                        color: messageColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -233,7 +233,7 @@ class _MessageListViewState extends State<MessageListView> {
                     Icon(
                       isExpanded ? Icons.expand_less : Icons.expand_more,
                       size: 16,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ],
                 ),
@@ -244,7 +244,7 @@ class _MessageListViewState extends State<MessageListView> {
                   subject,
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontFamily: 'monospace',
-                    color: theme.colorScheme.onSurface.withOpacity(0.8),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
                 ),
                 
@@ -268,7 +268,7 @@ class _MessageListViewState extends State<MessageListView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer.withOpacity(0.5),
+        color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -302,7 +302,7 @@ class _MessageListViewState extends State<MessageListView> {
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.2),
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
               ),
             ),
             child: Text(

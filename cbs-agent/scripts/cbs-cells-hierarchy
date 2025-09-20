@@ -1,0 +1,596 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Hierarchical Cell Management Tool
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "CBS Hierarchical Cell Management"
+  echo
+  echo "Usage: cbs-cells-hierarchy <command> [args...]"
+  echo
+  echo "Commands:"
+  echo "  list [domain/path]               List cells in hierarchy"
+  echo "  create <domain> [--template]     Create domain structure"
+  echo "  migrate <app> [--to-hierarchy]   Migrate flat to hierarchical"
+  echo "  validate [domain/path]           Validate hierarchical structure"
+  echo "  map [domain/path]                Generate hierarchical cell map"
+  echo
+  echo "List Examples:"
+  echo "  cbs-cells-hierarchy list                      # List all cells"
+  echo "  cbs-cells-hierarchy list features/auth        # List auth domain cells"
+  echo "  cbs-cells-hierarchy list --category ui        # List all UI cells"
+  echo "  cbs-cells-hierarchy list core                 # List core domain cells"
+  echo
+  echo "Create Examples:"
+  echo "  cbs-cells-hierarchy create features/messaging # Create messaging domain"
+  echo "  cbs-cells-hierarchy create core --template    # Create core domain with templates"
+  echo
+  echo "Migrate Examples:"
+  echo "  cbs-cells-hierarchy migrate my_app --to-hierarchy    # Migrate to hierarchical"
+  echo "  cbs-cells-hierarchy migrate my_app --suggest         # Suggest hierarchy"
+}
+
+# List cells in hierarchical structure
+list_cells() {
+  local path_filter="${1:-}"
+  local category_filter=""
+  
+  # Parse options
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --category)
+        category_filter="$2"
+        shift 2
+        ;;
+      *)
+        if [ -z "$path_filter" ]; then
+          path_filter="$1"
+        fi
+        shift
+        ;;
+    esac
+  done
+  
+  # Get current app from workflow state
+  if [ ! -f "$ROOT_DIR/.cbs-workflow-state" ]; then
+    echo "❌ No workflow state found. Initialize with: cbs app-create <app_name>"
+    exit 1
+  fi
+  
+  local current_app=$(yq eval '.current_app' "$ROOT_DIR/.cbs-workflow-state")
+  local cells_dir="$ROOT_DIR/applications/$current_app/cells"
+  
+  if [ ! -d "$cells_dir" ]; then
+    echo "❌ No cells directory found: $cells_dir"
+    exit 1
+  fi
+  
+  echo "🧬 CBS Cell Hierarchy - $current_app"
+  echo "═══════════════════════════════════════"
+  echo
+  
+  # Build search path
+  local search_path="$cells_dir"
+  if [ -n "$path_filter" ]; then
+    search_path="$cells_dir/$path_filter"
+    if [ ! -d "$search_path" ]; then
+      echo "❌ Path not found: $path_filter"
+      exit 1
+    fi
+  fi
+  
+  # Find all cells in hierarchy
+  local found_cells=false
+  
+  # Use find to get hierarchical structure
+  find "$search_path" -name "ai" -type d | while read -r ai_dir; do
+    local cell_dir=$(dirname "$ai_dir")
+    local spec_file="$ai_dir/spec.md"
+    
+    if [ -f "$spec_file" ]; then
+      # Extract cell info
+      local cell_id=$(grep "^- \*\*ID\*\*:" "$spec_file" 2>/dev/null | cut -d: -f2 | xargs || echo "")
+      local cell_category=$(grep "^- \*\*Category\*\*:" "$spec_file" 2>/dev/null | cut -d: -f2 | xargs || echo "")
+      local cell_language=$(grep "^- \*\*Language\*\*:" "$spec_file" 2>/dev/null | cut -d: -f2 | xargs || echo "")
+      local cell_purpose=$(grep "^- \*\*Purpose\*\*:" "$spec_file" 2>/dev/null | cut -d: -f2- | xargs || echo "")
+      
+      # Apply category filter
+      if [ -n "$category_filter" ] && [ "$cell_category" != "$category_filter" ]; then
+        continue
+      fi
+      
+      # Calculate relative path from cells directory
+      local rel_path=${cell_dir#$cells_dir/}
+      local depth=$(echo "$rel_path" | tr '/' '\n' | wc -l)
+      
+      # Create indentation based on depth
+      local indent=""
+      for ((i=1; i<depth; i++)); do
+        indent="  $indent"
+      done
+      
+      # Display cell info
+      echo "${indent}🧬 $rel_path"
+      echo "${indent}   ID: $cell_id"
+      echo "${indent}   Category: $cell_category"
+      echo "${indent}   Language: $cell_language"
+      if [ -n "$cell_purpose" ]; then
+        echo "${indent}   Purpose: $cell_purpose"
+      fi
+      
+      # Check implementation status
+      local impl_files=$(find "$cell_dir/lib" -name "*.dart" -o -name "*.rs" -o -name "*.py" 2>/dev/null | wc -l)
+      if [ "$impl_files" -gt 0 ]; then
+        echo "${indent}   Status: ✅ Implemented"
+      else
+        echo "${indent}   Status: 📝 Spec only"
+      fi
+      
+      echo
+      found_cells=true
+    fi
+  done
+  
+  if [ "$found_cells" = false ]; then
+    echo "📭 No cells found in specified path"
+  fi
+}
+
+# Create domain structure
+create_domain() {
+  local domain_path="$1"
+  local use_template="${2:-}"
+  
+  # Get current app
+  if [ ! -f "$ROOT_DIR/.cbs-workflow-state" ]; then
+    echo "❌ No workflow state found. Initialize with: cbs app-create <app_name>"
+    exit 1
+  fi
+  
+  local current_app=$(yq eval '.current_app' "$ROOT_DIR/.cbs-workflow-state")
+  local domain_dir="$ROOT_DIR/applications/$current_app/cells/$domain_path"
+  
+  if [ -d "$domain_dir" ]; then
+    echo "❌ Domain already exists: $domain_path"
+    exit 1
+  fi
+  
+  echo "🏗️ Creating domain structure: $domain_path"
+  
+  # Create basic domain structure
+  mkdir -p "$domain_dir"
+  
+  # Create domain README
+  cat > "$domain_dir/README.md" << EOF
+# $domain_path Domain
+
+## Overview
+This domain contains cells related to $(basename "$domain_path") functionality.
+
+## Cell Organization
+- **ui/**: User interface cells for this domain
+- **logic/**: Business logic cells for this domain  
+- **storage/**: Data persistence cells for this domain
+- **integration/**: External service integration cells for this domain
+
+## Message Contracts
+Cells in this domain follow the \`cbs.{cell_id}.{verb}\` pattern for bus communication.
+
+## Development Guidelines
+- Maintain cell isolation within domain
+- Use bus-only communication between cells
+- Design for reusability across applications
+- Follow CBS standards for all implementations
+
+## Cells in This Domain
+(To be populated as cells are created)
+
+EOF
+  
+  if [ "$use_template" = "--template" ]; then
+    echo "📋 Creating template structure..."
+    
+    # Create template subdirectories
+    mkdir -p "$domain_dir/ui"
+    mkdir -p "$domain_dir/logic"
+    mkdir -p "$domain_dir/storage"
+    mkdir -p "$domain_dir/integration"
+    
+    # Create placeholder READMEs
+    for category in ui logic storage integration; do
+      cat > "$domain_dir/$category/README.md" << EOF
+# $(basename "$domain_path") - $category Cells
+
+## Purpose
+This directory contains $category cells for the $(basename "$domain_path") domain.
+
+## Cell Guidelines for $category Category
+$(case "$category" in
+  "ui") echo "- Handle user interface and interactions
+- Manage local UI state with ValueNotifiers
+- Publish user actions to bus
+- Subscribe to data updates from logic cells" ;;
+  "logic") echo "- Implement business rules and processing
+- Handle data transformation and validation
+- Coordinate between UI and storage cells
+- Maintain domain-specific business logic" ;;
+  "storage") echo "- Handle data persistence and retrieval
+- Manage caching strategies
+- Provide data access patterns
+- Handle data migration and versioning" ;;
+  "integration") echo "- Connect to external services and APIs
+- Handle authentication and authorization
+- Manage service-specific data transformation
+- Implement retry and error handling patterns" ;;
+esac)
+
+## Cells in This Category
+(To be populated as cells are created)
+
+EOF
+    done
+    
+    echo "✅ Created template structure for $domain_path"
+  else
+    echo "✅ Created basic domain structure for $domain_path"
+  fi
+  
+  echo "📁 Location: applications/$current_app/cells/$domain_path"
+  echo ""
+  echo "Next steps:"
+  echo "  cbs-cell create $domain_path/ui/main_interface --app $current_app --type ui --lang dart"
+  echo "  cbs-cell create $domain_path/logic/processor --app $current_app --type logic --lang rust"
+}
+
+# Migrate flat structure to hierarchical
+migrate_to_hierarchy() {
+  local app_name="$1"
+  local action="${2:-}"
+  
+  local app_dir="$ROOT_DIR/applications/$app_name"
+  local cells_dir="$app_dir/cells"
+  
+  if [ ! -d "$cells_dir" ]; then
+    echo "❌ Application not found: $app_name"
+    exit 1
+  fi
+  
+  # Analyze existing cells
+  echo "🔍 Analyzing existing cell structure in $app_name..."
+  echo
+  
+  local cells=()
+  local categories=()
+  
+  for cell_dir in "$cells_dir"/*; do
+    if [ -d "$cell_dir" ] && [ -f "$cell_dir/ai/spec.md" ]; then
+      local cell_name=$(basename "$cell_dir")
+      local cell_category=$(grep "^- \*\*Category\*\*:" "$cell_dir/ai/spec.md" 2>/dev/null | cut -d: -f2 | xargs || echo "unknown")
+      
+      cells+=("$cell_name:$cell_category")
+      
+      # Track unique categories
+      if [[ ! " ${categories[@]} " =~ " ${cell_category} " ]]; then
+        categories+=("$cell_category")
+      fi
+    fi
+  done
+  
+  echo "📊 Current Structure Analysis:"
+  echo "  Total Cells: ${#cells[@]}"
+  echo "  Categories: ${categories[*]}"
+  echo
+  
+  # Suggest hierarchical organization
+  echo "💡 Suggested Hierarchical Organization:"
+  echo
+  
+  # Group by category for suggestion
+  for category in "${categories[@]}"; do
+    echo "📁 $category/"
+    for cell_info in "${cells[@]}"; do
+      local cell_name="${cell_info%:*}"
+      local cell_cat="${cell_info#*:}"
+      
+      if [ "$cell_cat" = "$category" ]; then
+        echo "  └── $cell_name/"
+      fi
+    done
+    echo
+  done
+  
+  if [ "$action" = "--suggest" ]; then
+    echo "💭 Alternative Domain-Based Organization:"
+    echo
+    echo "📁 core/                    # Core application functionality"
+    echo "  ├── ui/                   # Core UI cells"
+    echo "  ├── logic/                # Core business logic"
+    echo "  └── infrastructure/       # Logging, config, etc."
+    echo "📁 features/                # Feature-specific cells"
+    echo "  ├── feature1/             # Feature domain"
+    echo "  │   ├── ui/"
+    echo "  │   ├── logic/"
+    echo "  │   └── storage/"
+    echo "  └── feature2/"
+    echo "📁 shared/                  # Shared across features"
+    echo "  ├── ui/                   # Reusable UI components"
+    echo "  ├── logic/                # Shared business logic"
+    echo "  └── integration/          # Shared external services"
+    echo
+    echo "Use --to-hierarchy to perform migration"
+    return 0
+  fi
+  
+  if [ "$action" = "--to-hierarchy" ]; then
+    echo "⚠️ This will reorganize your cell structure"
+    read -p "Continue with migration? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "Migration cancelled"
+      exit 0
+    fi
+    
+    # Create backup
+    local backup_dir="$app_dir/cells_backup_$(date +%Y%m%d_%H%M%S)"
+    cp -r "$cells_dir" "$backup_dir"
+    echo "📦 Backup created: $(basename "$backup_dir")"
+    
+    # Create new hierarchical structure
+    mkdir -p "$cells_dir/core"
+    mkdir -p "$cells_dir/features"
+    mkdir -p "$cells_dir/shared"
+    
+    # Migrate cells by category
+    for cell_info in "${cells[@]}"; do
+      local cell_name="${cell_info%:*}"
+      local cell_cat="${cell_info#*:}"
+      
+      local old_path="$backup_dir/$cell_name"
+      local new_path=""
+      
+      case "$cell_cat" in
+        "ui"|"logic"|"storage"|"integration"|"io")
+          # Categorize as core, feature, or shared based on name patterns
+          if [[ "$cell_name" =~ main|app|core|shell ]]; then
+            new_path="$cells_dir/core/$cell_cat/$cell_name"
+          elif [[ "$cell_name" =~ shared|common|util ]]; then
+            new_path="$cells_dir/shared/$cell_cat/$cell_name"
+          else
+            # Try to extract feature name from cell name
+            local feature_name=$(echo "$cell_name" | sed 's/_ui$//' | sed 's/_logic$//' | sed 's/_storage$//' | sed 's/_integration$//')
+            new_path="$cells_dir/features/$feature_name/$cell_cat/$cell_name"
+          fi
+          ;;
+        *)
+          # Unknown category, put in shared
+          new_path="$cells_dir/shared/other/$cell_name"
+          ;;
+      esac
+      
+      # Create directory and move
+      mkdir -p "$(dirname "$new_path")"
+      cp -r "$old_path" "$new_path"
+      
+      echo "📁 Migrated: $cell_name → ${new_path#$cells_dir/}"
+    done
+    
+    # Remove old flat structure
+    for cell_info in "${cells[@]}"; do
+      local cell_name="${cell_info%:*}"
+      rm -rf "$cells_dir/$cell_name"
+    done
+    
+    echo
+    echo "✅ Migration completed!"
+    echo "📁 New structure: applications/$app_name/cells/"
+    echo "📦 Backup available: $(basename "$backup_dir")"
+    echo
+    echo "Next steps:"
+    echo "  cbs-cells-hierarchy list                    # View new structure"
+    echo "  cbs validate --specs                       # Validate migrated cells"
+    echo "  cbs-cells-hierarchy validate               # Validate hierarchy"
+  fi
+}
+
+# Validate hierarchical structure
+validate_hierarchy() {
+  local path_filter="${1:-}"
+  
+  # Get current app
+  if [ ! -f "$ROOT_DIR/.cbs-workflow-state" ]; then
+    echo "❌ No workflow state found"
+    exit 1
+  fi
+  
+  local current_app=$(yq eval '.current_app' "$ROOT_DIR/.cbs-workflow-state")
+  local cells_dir="$ROOT_DIR/applications/$current_app/cells"
+  
+  echo "🔍 Validating CBS Hierarchical Structure - $current_app"
+  echo "═════════════════════════════════════════════════════"
+  echo
+  
+  local search_path="$cells_dir"
+  if [ -n "$path_filter" ]; then
+    search_path="$cells_dir/$path_filter"
+  fi
+  
+  local total_cells=0
+  local valid_cells=0
+  local issues=()
+  
+  # Find all cells and validate
+  find "$search_path" -name "ai" -type d | while read -r ai_dir; do
+    local cell_dir=$(dirname "$ai_dir")
+    local spec_file="$ai_dir/spec.md"
+    
+    if [ -f "$spec_file" ]; then
+      ((total_cells++))
+      
+      local rel_path=${cell_dir#$cells_dir/}
+      local cell_name=$(basename "$cell_dir")
+      
+      echo "🧬 Validating: $rel_path"
+      
+      # Check cell ID matches directory name
+      local cell_id=$(grep "^- \*\*ID\*\*:" "$spec_file" 2>/dev/null | cut -d: -f2 | xargs || echo "")
+      if [ "$cell_id" != "$cell_name" ]; then
+        echo "  ⚠️ Cell ID mismatch: spec says '$cell_id', directory is '$cell_name'"
+        issues+=("$rel_path: Cell ID mismatch")
+      else
+        echo "  ✅ Cell ID correct"
+      fi
+      
+      # Check required directories exist
+      if [ -d "$cell_dir/lib" ] && [ -d "$cell_dir/test" ]; then
+        echo "  ✅ Directory structure correct"
+      else
+        echo "  ⚠️ Missing lib/ or test/ directories"
+        issues+=("$rel_path: Missing required directories")
+      fi
+      
+      # Check for implementation files
+      local impl_files=$(find "$cell_dir/lib" -name "*.dart" -o -name "*.rs" -o -name "*.py" 2>/dev/null | wc -l)
+      if [ "$impl_files" -gt 0 ]; then
+        echo "  ✅ Implementation files found"
+        ((valid_cells++))
+      else
+        echo "  📝 No implementation files (spec only)"
+      fi
+      
+      # Validate CBS compliance
+      if grep -q "cbs\." "$spec_file"; then
+        echo "  ✅ CBS message subjects found"
+      else
+        echo "  ⚠️ No CBS subjects defined"
+        issues+=("$rel_path: No CBS subjects defined")
+      fi
+      
+      echo
+    fi
+  done
+  
+  echo "📊 Validation Summary:"
+  echo "  Total Cells: $total_cells"
+  echo "  Implemented: $valid_cells"
+  echo "  Issues Found: ${#issues[@]}"
+  
+  if [ ${#issues[@]} -gt 0 ]; then
+    echo
+    echo "⚠️ Issues to Address:"
+    for issue in "${issues[@]}"; do
+      echo "  - $issue"
+    done
+  else
+    echo "  ✅ All cells valid!"
+  fi
+}
+
+# Generate hierarchical cell map
+generate_hierarchy_map() {
+  local path_filter="${1:-}"
+  
+  # Get current app
+  if [ ! -f "$ROOT_DIR/.cbs-workflow-state" ]; then
+    echo "❌ No workflow state found"
+    exit 1
+  fi
+  
+  local current_app=$(yq eval '.current_app' "$ROOT_DIR/.cbs-workflow-state")
+  local cells_dir="$ROOT_DIR/applications/$current_app/cells"
+  local output_file="$ROOT_DIR/applications/$current_app/ai/hierarchical_cell_map.md"
+  
+  echo "🗺️ Generating hierarchical cell map..."
+  
+  # Generate map file
+  cat > "$output_file" << EOF
+# Hierarchical Cell Map - $current_app
+
+Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+## Cell Hierarchy
+
+EOF
+  
+  # Build hierarchical map
+  find "$cells_dir" -name "ai" -type d | sort | while read -r ai_dir; do
+    local cell_dir=$(dirname "$ai_dir")
+    local spec_file="$ai_dir/spec.md"
+    
+    if [ -f "$spec_file" ]; then
+      local rel_path=${cell_dir#$cells_dir/}
+      local cell_name=$(basename "$cell_dir")
+      local cell_category=$(grep "^- \*\*Category\*\*:" "$spec_file" 2>/dev/null | cut -d: -f2 | xargs || echo "")
+      local cell_language=$(grep "^- \*\*Language\*\*:" "$spec_file" 2>/dev/null | cut -d: -f2 | xargs || echo "")
+      local cell_purpose=$(grep "^- \*\*Purpose\*\*:" "$spec_file" 2>/dev/null | cut -d: -f2- | xargs || echo "")
+      
+      # Extract message subjects
+      local subscribes=$(grep -A 5 "Subscribe" "$spec_file" 2>/dev/null | grep "cbs\." | head -3 | xargs || echo "")
+      local publishes=$(grep -A 5 "Publish" "$spec_file" 2>/dev/null | grep "cbs\." | head -3 | xargs || echo "")
+      
+      # Calculate depth for indentation
+      local depth=$(echo "$rel_path" | tr '/' '\n' | wc -l)
+      local indent=""
+      for ((i=1; i<=depth; i++)); do
+        indent="  $indent"
+      done
+      
+      # Write to map file
+      echo "${indent}- **$cell_name** ($cell_category, $cell_language)" >> "$output_file"
+      echo "${indent}  - Path: \`$rel_path\`" >> "$output_file"
+      echo "${indent}  - Purpose: $cell_purpose" >> "$output_file"
+      if [ -n "$subscribes" ]; then
+        echo "${indent}  - Subscribes: $subscribes" >> "$output_file"
+      fi
+      if [ -n "$publishes" ]; then
+        echo "${indent}  - Publishes: $publishes" >> "$output_file"
+      fi
+      echo "" >> "$output_file"
+    fi
+  done
+  
+  echo "✅ Hierarchical cell map generated: $output_file"
+}
+
+# Main command dispatcher
+case "${1:-}" in
+  list)
+    shift
+    list_cells "$@"
+    ;;
+  create)
+    if [ $# -lt 2 ]; then
+      echo "Usage: cbs-cells-hierarchy create <domain-path> [--template]"
+      exit 1
+    fi
+    shift
+    create_domain "$@"
+    ;;
+  migrate)
+    if [ $# -lt 2 ]; then
+      echo "Usage: cbs-cells-hierarchy migrate <app-name> [--to-hierarchy|--suggest]"
+      exit 1
+    fi
+    shift
+    migrate_to_hierarchy "$@"
+    ;;
+  validate)
+    shift
+    validate_hierarchy "$@"
+    ;;
+  map)
+    shift
+    generate_hierarchy_map "$@"
+    ;;
+  --help|-h|help)
+    usage
+    ;;
+  "")
+    usage
+    ;;
+  *)
+    echo "Unknown command: $1"
+    usage
+    exit 1
+    ;;
+esac

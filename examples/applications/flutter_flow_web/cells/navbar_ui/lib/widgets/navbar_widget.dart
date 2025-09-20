@@ -40,7 +40,7 @@ class _NavbarWidgetState extends State<NavbarWidget> {
         color: const Color(0xFF2A2A2A),
         border: Border(
           bottom: BorderSide(
-            color: const Color(0xFF00D4FF).withOpacity(0.3),
+            color: const Color(0xFF00D4FF).withValues(alpha: 0.3),
             width: 1,
           ),
         ),

@@ -115,20 +115,61 @@ Create the overall cell architecture with clear responsibilities and communicati
 - **Total Cells**: [N] cells across [N] categories
 - **Architecture Date**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 - **Based on**: Application specification v[X]
+- **Structure**: Hierarchical organization by domain and category
 
-## Cell Breakdown by Category
+## Hierarchical Cell Breakdown
 
-### UI Cells ([N] cells)
-- **${app}_main_ui** - Primary user interface and navigation
-  - **Purpose**: Handle user interactions and display main interface
-  - **Subscribes**: `cbs.main_ui.render`, `cbs.main_ui.update`
-  - **Publishes**: `cbs.user.action`, `cbs.ui.state_change`
-  - **Dependencies**: Communicates with logic cells for data
+### Core Domain (core/)
+#### UI Cells (core/ui/)
+- **main_shell** - Application shell and global navigation
+  - **Path**: `core/ui/main_shell/`
+  - **Purpose**: Handle app-wide UI structure and navigation
+  - **Subscribes**: `cbs.main_shell.render`, `cbs.main_shell.navigate`
+  - **Publishes**: `cbs.navigation.request`, `cbs.ui.global_state`
 
-- **${app}_feature_ui** - Feature-specific user interface
-  - **Purpose**: Handle [specific feature] user interactions
-  - **Subscribes**: `cbs.feature_ui.render`, `cbs.feature_ui.interact`
-  - **Publishes**: `cbs.feature.request`, `cbs.ui.feature_event`
+- **error_display** - Global error handling UI
+  - **Path**: `core/ui/error_display/`
+  - **Purpose**: Display system-wide errors and notifications
+  - **Subscribes**: `cbs.error_display.show`, `cbs.error_display.clear`
+  - **Publishes**: `cbs.error.acknowledged`, `cbs.ui.error_state`
+
+#### Logic Cells (core/logic/)
+- **app_controller** - Main application controller
+  - **Path**: `core/logic/app_controller/`
+  - **Purpose**: Coordinate app-wide logic and state management
+  - **Subscribes**: `cbs.app_controller.init`, `cbs.app_controller.shutdown`
+  - **Publishes**: `cbs.app.ready`, `cbs.app.state_change`
+
+### Feature Domains (features/)
+#### Authentication Domain (features/authentication/)
+##### UI Cells (features/authentication/ui/)
+- **login_form** - User login interface
+  - **Path**: `features/authentication/ui/login_form/`
+  - **Purpose**: Handle user login interactions
+  - **Subscribes**: `cbs.login_form.render`, `cbs.login_form.submit`
+  - **Publishes**: `cbs.auth.attempt`, `cbs.ui.login_state`
+
+##### Logic Cells (features/authentication/logic/)
+- **auth_processor** - Authentication business logic
+  - **Path**: `features/authentication/logic/auth_processor/`
+  - **Purpose**: Process authentication requests and manage sessions
+  - **Subscribes**: `cbs.auth_processor.authenticate`, `cbs.auth_processor.validate`
+  - **Publishes**: `cbs.auth.result`, `cbs.session.created`
+
+##### Storage Cells (features/authentication/storage/)
+- **user_store** - User data persistence
+  - **Path**: `features/authentication/storage/user_store/`
+  - **Purpose**: Manage user data storage and retrieval
+  - **Subscribes**: `cbs.user_store.save`, `cbs.user_store.query`
+  - **Publishes**: `cbs.user.saved`, `cbs.user.retrieved`
+
+### Shared Domain (shared/)
+#### Integration Cells (shared/integration/)
+- **api_client** - HTTP API client
+  - **Path**: `shared/integration/api_client/`
+  - **Purpose**: Handle HTTP requests to external APIs
+  - **Subscribes**: `cbs.api_client.request`, `cbs.api_client.upload`
+  - **Publishes**: `cbs.api.response`, `cbs.api.error`
 
 ### Logic Cells ([N] cells)
 - **${app}_core_logic** - Core business logic and processing

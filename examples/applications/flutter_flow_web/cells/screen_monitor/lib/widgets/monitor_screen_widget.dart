@@ -67,7 +67,7 @@ class _MonitorScreenWidgetState extends State<MonitorScreenWidget> {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: const Color(0xFF00D4FF).withOpacity(0.3),
+                  color: const Color(0xFF00D4FF).withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -114,9 +114,9 @@ class _MonitorScreenWidgetState extends State<MonitorScreenWidget> {
                   icon: const Icon(Icons.clear_all, color: Colors.white),
                   label: const Text('Clear', style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.withOpacity(0.2),
+                    backgroundColor: Colors.red.withValues(alpha: 0.2),
                     side: BorderSide(
-                      color: Colors.red.withOpacity(0.5),
+                      color: Colors.red.withValues(alpha: 0.5),
                       width: 1,
                     ),
                   ),

@@ -3,15 +3,23 @@
 set -e
 
 show_usage() {
-    echo "Usage: cbs-cell create <cell-name> --app <app-name> --type <type> --lang <language>"
+    echo "Usage: cbs-cell create <cell-path> --app <app-name> --type <type> --lang <language>"
     echo ""
     echo "Arguments:"
-    echo "  cell-name     Name of the cell (snake_case)"
+    echo "  cell-path     Cell name or hierarchical path (snake_case)"
+    echo "                Examples: user_service"
+    echo "                         features/auth/ui/login_form"
+    echo "                         core/ui/main_shell"
     echo "  --app         Application name"
     echo "  --type        Cell type: ui|io|logic|integration|storage"
     echo "  --lang        Language: rust|dart|python"
     echo ""
-    echo "Example:"
+    echo "Hierarchical Examples:"
+    echo "  cbs-cell create features/auth/ui/login_form --app my_app --type ui --lang dart"
+    echo "  cbs-cell create core/logic/app_controller --app my_app --type logic --lang rust"
+    echo "  cbs-cell create shared/integration/api_client --app my_app --type integration --lang rust"
+    echo ""
+    echo "Flat Examples (backward compatible):"
     echo "  cbs-cell create user_service --app my_app --type logic --lang rust"
 }
 
@@ -21,8 +29,11 @@ if [ "$1" != "create" ]; then
     exit 1
 fi
 
-CELL_NAME="$2"
+CELL_PATH="$2"
 shift 2
+
+# Extract cell name from path (last component)
+CELL_NAME=$(basename "$CELL_PATH")
 
 APP_NAME=""
 CELL_TYPE=""
@@ -79,16 +90,18 @@ case $LANGUAGE in
         ;;
 esac
 
-CELL_DIR="applications/$APP_NAME/cells/$CELL_NAME"
+# Support hierarchical cell paths
+CELL_DIR="applications/$APP_NAME/cells/$CELL_PATH"
 
 # Check if cell already exists
 if [ -d "$CELL_DIR" ]; then
-    echo "❌ Cell $CELL_NAME already exists in $APP_NAME"
+    echo "❌ Cell $CELL_PATH already exists in $APP_NAME"
     exit 1
 fi
 
 echo "🧬 Creating new CBS cell: $CELL_NAME"
 echo "   App: $APP_NAME"
+echo "   Path: $CELL_PATH"
 echo "   Type: $CELL_TYPE"
 echo "   Language: $LANGUAGE"
 

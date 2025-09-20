@@ -26,7 +26,7 @@ class FlowTextWidget extends StatelessWidget {
     }
 
     final effectiveColor = color ?? const Color(0xFF00D4FF);
-    final effectiveGlowColor = glowColor ?? effectiveColor.withOpacity(0.5);
+    final effectiveGlowColor = glowColor ?? effectiveColor.withValues(alpha: 0.5);
     final effectiveFontSize = fontSize ?? _getResponsiveFontSize(context);
 
     return Column(
@@ -57,7 +57,7 @@ class FlowTextWidget extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 effectiveColor,
-                effectiveColor.withOpacity(0.7),
+                effectiveColor.withValues(alpha: 0.7),
               ],
             ),
             borderRadius: BorderRadius.circular(2),

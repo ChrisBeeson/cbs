@@ -58,6 +58,10 @@ applications/<app>/cells/<cell>/
 - Use explicit types for public APIs; avoid dynamic
 - Keep files short; one widget/class per file when feasible
 - Document public classes and functions concisely
+- **Color opacity**: Use `color.withValues(alpha: 0.5)` instead of deprecated `withOpacity()`
+- **Null safety**: Use late initialization and proper null checks
+- **Widget lifecycle**: Properly dispose controllers and notifiers
+- **State management**: Use ValueNotifier for reactive updates in CBS cells
 
 ### Python
 - Format with Black (line length 100); lint with Ruff

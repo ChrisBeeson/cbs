@@ -29,6 +29,9 @@ usage() {
   echo "  generate                              Generate catalog (MD + JSON)"
   echo "  search [--language L] [--category C]  Search shareable cells"
   echo "  install <cellId> <app>                Install cell into app"
+  echo "  create <path> --app <app> --type <type> --lang <lang>  Create cell (hierarchical)"
+  echo "  list [domain/path]                    List cells in hierarchy"
+  echo "  migrate <app> --to-hierarchy          Migrate to hierarchical structure"
   echo
   echo "Workflow Examples:"
   echo "  cbs app-create my_new_app             Create app with workflow tracking"
@@ -75,7 +78,27 @@ case "${1:-}" in
     ;;
   cell)
     shift
-    exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell" "$@"
+    case "${1:-}" in
+      create)
+        shift
+        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell-create" create "$@"
+        ;;
+      list)
+        shift
+        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cells-hierarchy" list "$@"
+        ;;
+      migrate)
+        shift
+        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cells-hierarchy" migrate "$@"
+        ;;
+      hierarchy)
+        shift
+        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cells-hierarchy" "$@"
+        ;;
+      *)
+        exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell" "$@"
+        ;;
+    esac
     ;;
   app-spec)
     shift

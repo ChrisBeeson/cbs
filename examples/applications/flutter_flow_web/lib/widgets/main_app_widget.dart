@@ -106,7 +106,7 @@ class _MainAppWidgetState extends State<MainAppWidget> {
           Icon(
             Icons.error_outline,
             size: 64,
-            color: Colors.red.withOpacity(0.7),
+            color: Colors.red.withValues(alpha: 0.7),
           ),
           const SizedBox(height: 16),
           Text(
@@ -114,7 +114,7 @@ class _MainAppWidgetState extends State<MainAppWidget> {
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.red.withOpacity(0.7),
+              color: Colors.red.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 8),

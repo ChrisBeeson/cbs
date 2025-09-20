@@ -303,7 +303,7 @@ class _FlowUIWidgetState extends State<FlowUIWidget> {
               margin: const EdgeInsets.all(24.0),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: const Color(0xFF00D4FF).withOpacity(0.3),
+                  color: const Color(0xFF00D4FF).withValues(alpha: 0.3),
                   width: 1,
                 ),
                 borderRadius: BorderRadius.circular(8.0),
@@ -336,10 +336,10 @@ class _FlowUIWidgetState extends State<FlowUIWidget> {
         style: const TextStyle(color: Colors.white),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF00D4FF).withOpacity(0.2),
+        backgroundColor: const Color(0xFF00D4FF).withValues(alpha: 0.2),
         foregroundColor: Colors.white,
         side: BorderSide(
-          color: const Color(0xFF00D4FF).withOpacity(0.5),
+          color: const Color(0xFF00D4FF).withValues(alpha: 0.5),
           width: 1,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -354,7 +354,7 @@ class _FlowUIWidgetState extends State<FlowUIWidget> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: const Color(0xFF00D4FF).withOpacity(0.3),
+            color: const Color(0xFF00D4FF).withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -379,10 +379,10 @@ class _FlowUIWidgetState extends State<FlowUIWidget> {
             icon: const Icon(Icons.clear_all, size: 16, color: Colors.white),
             label: const Text('Clear', style: TextStyle(color: Colors.white, fontSize: 12)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.withOpacity(0.2),
+              backgroundColor: Colors.red.withValues(alpha: 0.2),
               foregroundColor: Colors.white,
               side: BorderSide(
-                color: Colors.red.withOpacity(0.5),
+                color: Colors.red.withValues(alpha: 0.5),
                 width: 1,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -469,7 +469,7 @@ class _FlowUIWidgetState extends State<FlowUIWidget> {
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(6.0),
         border: Border.all(
-          color: displayColor.withOpacity(0.3),
+          color: displayColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
