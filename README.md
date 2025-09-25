@@ -4,6 +4,25 @@
 
 **This is not just another framework - it's a paradigm shift that enables true modularity, language freedom, and natural scaling.**
 
+## ⚡ Quick Start: Run the Examples
+
+```bash
+# 1) Build the framework (from repo root)
+cargo build -p body
+
+# 2) Run the CLI Greeter (demo mode)
+./target/debug/body --app cli_greeter --demo
+
+# 3) Run the Flutter Flow Web app (serves static web)
+./target/debug/body --app flutter_flow_web
+# Open http://localhost:8080
+```
+
+Tip (macOS): if you hit a linker error about Xcode license, run:
+```bash
+sudo xcodebuild -license
+```
+
 ## 📋 Spec‑Driven Development (SDD) and the Descent into Chaos
 
 - Traditional model: PRDs → code; code becomes the single source of truth; specs drift and get discarded; intent and implementation diverge.
