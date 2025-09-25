@@ -138,7 +138,7 @@ Determine how the feature affects existing cells and what new cells are needed.
 for cell_dir in "$CELLS_DIR"/*; do
   if [ -d "$cell_dir" ]; then
     cell_name=$(basename "$cell_dir")
-    cell_spec="$cell_dir/ai/spec.md"
+    cell_spec="$cell_dir/.cbs-spec/spec.md"
     
     if [ -f "$cell_spec" ]; then
       # Analyze if this cell needs modifications for the feature

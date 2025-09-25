@@ -79,7 +79,7 @@ case "$cmd" in
         "$ROOT_DIR/cbs-agent/scripts/cbs-app-spec" "$app_name" || true
         echo ""
         echo "✅ New app ready: $app_name"
-        echo "📝 Edit: applications/$app_name/ai/app_spec.md"
+        echo "📝 Edit: applications/$app_name/.cbs-spec/app_spec.md"
         echo "➡️  Next: cbs app-spec $app_name  |  cbs app refine"
         ;;
       cell)
@@ -111,7 +111,7 @@ case "$cmd" in
           [ -n "$target_app" ] && "$ROOT_DIR/cbs-agent/scripts/cbs-app-spec" "$target_app" >/dev/null 2>&1 || true
         fi
         echo ""
-        echo "📝 Refine app spec: applications/${target_app:-<current>}/ai/app_spec.md"
+        echo "📝 Refine app spec: applications/${target_app:-<current>}/.cbs-spec/app_spec.md"
         echo "➡️  Tip: cbs app refine 'Describe your change'"
         ;;
       cell)

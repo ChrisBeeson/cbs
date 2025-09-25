@@ -106,10 +106,10 @@ echo "   Type: $CELL_TYPE"
 echo "   Language: $LANGUAGE"
 
 # Create directory structure
-mkdir -p "$CELL_DIR"/{ai,lib,test}
+mkdir -p "$CELL_DIR"/{.cbs-spec,lib,test}
 
 # Create cell specification
-cat > "$CELL_DIR/ai/spec.md" << EOF
+cat > "$CELL_DIR/.cbs-spec/spec.md" << EOF
 # $CELL_NAME Cell Specification
 
 ## Metadata
@@ -376,12 +376,12 @@ esac
 echo "✅ Cell '$CELL_NAME' created successfully!"
 echo ""
 echo "Files created:"
-echo "  $CELL_DIR/ai/spec.md"
+echo "  $CELL_DIR/.cbs-spec/spec.md"
 echo "  $CELL_DIR/lib/"
 echo "  $CELL_DIR/test/"
 echo ""
 echo "Next steps:"
-echo "  1. Edit $CELL_DIR/ai/spec.md to define the cell interface"
+echo "  1. Edit $CELL_DIR/.cbs-spec/spec.md to define the cell interface"
 echo "  2. Implement the cell logic in $CELL_DIR/lib/"
 echo "  3. Add tests in $CELL_DIR/test/"
 echo "  4. Run tests: cd $CELL_DIR && cargo test (or dart test, pytest)"

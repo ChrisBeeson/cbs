@@ -167,7 +167,7 @@ Cell C (healthy) ← ✅ Still processing messages
 Before writing any code, design your message contracts:
 
 ```yaml
-# ai/spec.md for user_service cell
+# .cbs-spec/spec.md for user_service cell
 Messages:
   cbs.user_service.get_user:
     schema: user/v1/GetUser

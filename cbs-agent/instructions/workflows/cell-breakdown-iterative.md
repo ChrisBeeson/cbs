@@ -43,7 +43,7 @@ if [ "$APP_SPEC_STATUS" != "completed" ]; then
 fi
 
 # Check app spec file exists
-APP_SPEC_PATH="applications/$CURRENT_APP/ai/app_spec.md"
+APP_SPEC_PATH="applications/$CURRENT_APP/.cbs-spec/app_spec.md"
 if [ ! -f "$APP_SPEC_PATH" ]; then
   echo "❌ Application spec file not found: $APP_SPEC_PATH"
   exit 1
@@ -514,8 +514,8 @@ for cell in $IDENTIFIED_CELLS; do
   mkdir -p "$CELL_DIR/test"
   
   # Create placeholder spec file
-  echo "# $cell Cell Specification" > "$CELL_DIR/ai/spec.md"
-  echo "## Status: Pending creation" >> "$CELL_DIR/ai/spec.md"
+  echo "# $cell Cell Specification" > "$CELL_DIR/.cbs-spec/spec.md"
+  echo "## Status: Pending creation" >> "$CELL_DIR/.cbs-spec/spec.md"
 done
 ```
 

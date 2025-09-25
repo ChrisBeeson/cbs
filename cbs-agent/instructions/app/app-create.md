@@ -162,7 +162,7 @@ Validate the application specification and present to user for approval.
 - [Integration complexity assessment]
 
 ### 📄 Full Specification
-Location: `applications/$APP_NAME/ai/app_spec.md`
+Location: `applications/$APP_NAME/.cbs-spec/app_spec.md`
 
 ### 🔄 Next Steps
 1. **Approve**: Proceed to cell breakdown

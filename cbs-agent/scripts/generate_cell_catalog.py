@@ -2,7 +2,7 @@
 """
 Generate a global catalog of shareable CBS cells by scanning applications/*.
 
-A cell is considered shareable when its ai/spec.md contains:
+A cell is considered shareable when its .cbs-spec/spec.md contains:
   **shareable**: true
 
 Outputs:
@@ -24,7 +24,7 @@ def _strip_md_value(s: str) -> str:
 
 
 def parse_spec(md_path: str) -> dict:
-    """Parse ai/spec.md into a minimal dict. Ignores unknown keys.
+    """Parse .cbs-spec/spec.md into a minimal dict. Ignores unknown keys.
 
     Recognized keys: id, name, version, language, category, purpose,
     envelope, shareable, subscribe, publish.

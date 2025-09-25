@@ -262,7 +262,7 @@ genhtml coverage/lcov.info -o coverage/html
 - ✅ Structured logging
 
 ## Message Contracts
-See \`ai/spec.md\` for detailed message contracts and interface specification.
+See \`.cbs-spec/spec.md\` for detailed message contracts and interface specification.
 EOF
 
   echo "✅ Cell structure created successfully"
@@ -446,7 +446,7 @@ show_implementation_status() {
     [ -f "$cell_dir/pubspec.yaml" ] && echo "✅ pubspec.yaml" || echo "❌ pubspec.yaml missing"
     [ -f "$cell_dir/lib/${cell_id}_cell.dart" ] && echo "✅ Main cell file" || echo "❌ Main cell file missing"
     [ -d "$cell_dir/test" ] && echo "✅ Test directory" || echo "❌ Test directory missing"
-    [ -f "$cell_dir/ai/spec.md" ] && echo "✅ Specification" || echo "❌ Specification missing"
+    [ -f "$cell_dir/.cbs-spec/spec.md" ] && echo "✅ Specification" || echo "❌ Specification missing"
     
     # Check if dependencies are installed
     if [ -f "$cell_dir/pubspec.lock" ]; then

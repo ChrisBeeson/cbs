@@ -63,7 +63,7 @@ Identify whether this is initial spec creation or iterative refinement.
 
 **Decision Logic**:
 ```bash
-APP_SPEC_PATH="applications/$CURRENT_APP/ai/app_spec.md"
+APP_SPEC_PATH="applications/$CURRENT_APP/.cbs-spec/app_spec.md"
 
 if [ ! -f "$APP_SPEC_PATH" ] || [ "$ITERATION" -eq 0 ]; then
   ITERATION_TYPE="initial"
@@ -298,7 +298,7 @@ ${CHANGE_SUMMARY}
 - **Architecture**: ${CELL_COUNT_ESTIMATE} anticipated cells
 
 ### 📄 Full Specification
-Location: `applications/${APP_NAME}/ai/app_spec.md`
+Location: `applications/${APP_NAME}/.cbs-spec/app_spec.md`
 
 ### ✅ Validation Status
 ${VALIDATION_SUMMARY}
@@ -389,7 +389,7 @@ yq eval "
 **Transition Confirmation**:
 ```bash
 echo "✅ Application specification approved!"
-echo "📝 Spec: applications/$APP_NAME/ai/app_spec.md"
+echo "📝 Spec: applications/$APP_NAME/.cbs-spec/app_spec.md"
 echo "🔄 Phase transition: app_spec → cell_breakdown"
 echo "📊 Total iterations: $NEW_ITERATION"
 echo ""

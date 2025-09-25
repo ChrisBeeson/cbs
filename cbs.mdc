@@ -18,12 +18,12 @@ cbs:
 paths:
   # Application-level specs
   app_specs:
-    - "applications/*/ai/app_spec.md"
-    - "examples/applications/*/ai/app_spec.md"
+    - "applications/*/.cbs-spec/app_spec.md"
+    - "applications/*/.cbs-spec/app_spec.md"
   # Cell-level specs (canonical)
   cell_specs:
-    - "applications/*/cells/*/ai/spec.md"
-    - "examples/applications/*/cells/*/ai/spec.md"
+    - "applications/*/cells/*/.cbs-spec/spec.md"
+    - "applications/*/cells/*/.cbs-spec/spec.md"
   # Per-application cell maps (generated)
   cell_map_out: "applications/{app}/ai/cell_map.md"
 
@@ -77,8 +77,8 @@ workflows:
       - "cbs-agent/scripts/cbs-validate-spec"
 
 notes:
-  - "Cell specs live under applications/<app>/cells/<cell>/ai/spec.md"
-  - "Application specs live under applications/<app>/ai/app_spec.md"
+  - "Cell specs live under applications/<app>/cells/<cell>/.cbs-spec/spec.md"
+  - "Application specs live under applications/<app>/.cbs-spec/app_spec.md"
   - "Cell maps are generated per application in applications/<app>/ai/cell_map.md"# CBS Methodology Rules (MDC)
 mdc_version: 1.0
 
@@ -95,12 +95,12 @@ cbs:
 paths:
   # Application-level specs
   app_specs:
-    - "applications/*/ai/app_spec.md"
-    - "examples/applications/*/ai/app_spec.md"
+    - "applications/*/.cbs-spec/app_spec.md"
+    - "applications/*/.cbs-spec/app_spec.md"
   # Cell-level specs (canonical)
   cell_specs:
-    - "applications/*/cells/*/ai/spec.md"
-    - "examples/applications/*/cells/*/ai/spec.md"
+    - "applications/*/cells/*/.cbs-spec/spec.md"
+    - "applications/*/cells/*/.cbs-spec/spec.md"
   # Per-application cell maps (generated)
   cell_map_out: "applications/{app}/ai/cell_map.md"
 
@@ -151,6 +151,6 @@ workflows:
       - "cbs-agent/scripts/cbs-validate-spec"
 
 notes:
-  - "Cell specs live under applications/<app>/cells/<cell>/ai/spec.md"
-  - "Application specs live under applications/<app>/ai/app_spec.md"
+  - "Cell specs live under applications/<app>/cells/<cell>/.cbs-spec/spec.md"
+  - "Application specs live under applications/<app>/.cbs-spec/app_spec.md"
   - "Cell maps are generated per application in applications/<app>/ai/cell_map.md"

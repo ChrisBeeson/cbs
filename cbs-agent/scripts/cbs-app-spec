@@ -5,7 +5,7 @@ ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 usage() {
   echo "Usage: cbs-app-spec <app_name>"
-  echo "Creates or updates applications/<app>/ai/app_spec.md from template"
+  echo "Creates or updates applications/<app>/.cbs-spec/app_spec.md from template"
 }
 
 APP_NAME="${1-}"
@@ -14,14 +14,14 @@ if [ -z "$APP_NAME" ] || [[ "$APP_NAME" == -* ]]; then
 fi
 
 APP_DIR="$ROOT_DIR/applications/$APP_NAME"
-EX_APP_DIR="$ROOT_DIR/examples/applications/$APP_NAME"
+EX_APP_DIR="$ROOT_DIR/applications/$APP_NAME"
 TARGET_DIR=""
 if [ -d "$APP_DIR" ]; then
-  TARGET_DIR="$APP_DIR/ai"
+  TARGET_DIR="$APP_DIR/.cbs-spec"
 elif [ -d "$EX_APP_DIR" ]; then
-  TARGET_DIR="$EX_APP_DIR/ai"
+  TARGET_DIR="$EX_APP_DIR/.cbs-spec"
 else
-  echo "❌ Application '$APP_NAME' not found under applications/ or examples/applications/" >&2
+  echo "❌ Application '$APP_NAME' not found under applications/" >&2
   exit 2
 fi
 

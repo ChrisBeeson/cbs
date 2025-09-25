@@ -8,7 +8,7 @@ encoding: UTF-8
 
 ## Overview
 
-Create a new cell scaffold with `ai/spec.md`, tests, and enforcement hooks.
+Create a new cell scaffold with `.cbs-spec/spec.md`, tests, and enforcement hooks.
 
 <cbs_context_check>
   EXECUTE: @cbs-agent/instructions/meta/cbs-context.md
@@ -33,7 +33,7 @@ Create a new cell scaffold with `ai/spec.md`, tests, and enforcement hooks.
 Create directories:
 ```
 applications/<app>/cells/<cell>/
-  ai/spec.md
+  .cbs-spec/spec.md
   lib/
   test/
 ```

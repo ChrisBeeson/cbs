@@ -112,7 +112,7 @@ All CBS development follows the standards in `standards/cbs-standards.md`:
 
 ## Cell Specifications
 
-- Cell specs: `applications/<app>/cells/<cell>/ai/spec.md`
-- App specs: `applications/<app>/ai/app_spec.md` (use template in `templates/`)
+- Cell specs: `applications/<app>/cells/<cell>/.cbs-spec/spec.md`
+- App specs: `applications/<app>/.cbs-spec/app_spec.md` (use template in `templates/`)
 - Shared cells: Catalog managed via `cbs cell` commands
 

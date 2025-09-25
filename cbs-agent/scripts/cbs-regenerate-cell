@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   echo "Usage: cbs-regenerate-cell <app> <cell> [--yes]"
-  echo "Regenerates cell implementation from ai/spec.md (dry-run by default)"
+  echo "Regenerates cell implementation from .cbs-spec/spec.md (dry-run by default)"
 }
 
 if [ $# -lt 2 ]; then usage; exit 1; fi
@@ -16,14 +16,14 @@ if [ "${1-}" = "--yes" ]; then APPLY=true; fi
 BASE_DIR=""
 if [ -d "$ROOT_DIR/applications/$APP/cells/$CELL" ]; then
   BASE_DIR="$ROOT_DIR/applications/$APP/cells/$CELL"
-elif [ -d "$ROOT_DIR/examples/applications/$APP/cells/$CELL" ]; then
-  BASE_DIR="$ROOT_DIR/examples/applications/$APP/cells/$CELL"
+elif [ -d "$ROOT_DIR/applications/$APP/cells/$CELL" ]; then
+  BASE_DIR="$ROOT_DIR/applications/$APP/cells/$CELL"
 else
-  echo "❌ Cell not found under applications/ or examples/applications/" >&2
+  echo "❌ Cell not found under applications/" >&2
   exit 2
 fi
 
-SPEC="$BASE_DIR/ai/spec.md"
+SPEC="$BASE_DIR/.cbs-spec/spec.md"
 if [ ! -f "$SPEC" ]; then
   echo "❌ Missing spec: $SPEC" >&2
   exit 3

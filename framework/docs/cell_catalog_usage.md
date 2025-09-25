@@ -1,6 +1,6 @@
 ## Shareable Cells Catalog
 
-Mark a cell shareable without moving it. Add to `applications/<app>/cells/<cell>/ai/spec.md`:
+Mark a cell shareable without moving it. Add to `applications/<app>/cells/<cell>/.cbs-spec/spec.md`:
 
 ```
 **shareable**: true

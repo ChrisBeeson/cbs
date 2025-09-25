@@ -39,7 +39,7 @@ if [ -z "$CELL_NAME" ]; then
 fi
 
 # Validate cell specification exists
-CELL_SPEC_PATH="applications/$CURRENT_APP/cells/$CELL_NAME/ai/spec.md"
+CELL_SPEC_PATH="applications/$CURRENT_APP/cells/$CELL_NAME/.cbs-spec/spec.md"
 if [ ! -f "$CELL_SPEC_PATH" ]; then
   echo "❌ Cell specification not found: $CELL_SPEC_PATH"
   echo "Create cell spec first: cbs cell design $CELL_NAME"

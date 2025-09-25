@@ -24,7 +24,7 @@
 ### Directory Structure
 ```
 applications/<app>/cells/<cell>/
-  ai/spec.md          # Cell specification
+  .cbs-spec/spec.md   # Cell specification
   lib/               # Implementation
   test/              # Tests
   pubspec.yaml       # Dependencies (Dart)
@@ -42,7 +42,7 @@ applications/<app>/cells/<cell>/
 - **Testing**: Unit tests for logic; integration tests for bus handling
 - **Bus-only rule**: Never communicate directly between cells
 - **Internal modularity**: Within cells, organize code modularly
-- **Documentation**: Keep `spec.md` accurate; update when behavior changes
+- **Documentation**: Keep `.cbs-spec/spec.md` accurate; update when behavior changes
 
 ## Code Style
 
@@ -82,7 +82,7 @@ cbs work <app> <cell>           # Start work session
 
 ### Cell Development
 1. **Set Context**: Establish app/cell context before work
-2. **Review Spec**: Check `ai/spec.md` for message contracts
+2. **Review Spec**: Check `.cbs-spec/spec.md` for message contracts
 3. **Validate Isolation**: Ensure no direct cell dependencies
 4. **Implement Changes**: Work within cell boundaries only
 5. **Test Isolation**: Validate bus-only communication

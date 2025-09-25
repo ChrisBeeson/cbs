@@ -84,9 +84,9 @@ list_cells() {
   local found_cells=false
   
   # Use find to get hierarchical structure
-  find "$search_path" -name "ai" -type d | while read -r ai_dir; do
-    local cell_dir=$(dirname "$ai_dir")
-    local spec_file="$ai_dir/spec.md"
+  find "$search_path" -name ".cbs-spec" -type d | while read -r spec_dir; do
+    local cell_dir=$(dirname "$spec_dir")
+    local spec_file="$spec_dir/spec.md"
     
     if [ -f "$spec_file" ]; then
       # Extract cell info
@@ -420,9 +420,9 @@ validate_hierarchy() {
   local issues=()
   
   # Find all cells and validate
-  find "$search_path" -name "ai" -type d | while read -r ai_dir; do
-    local cell_dir=$(dirname "$ai_dir")
-    local spec_file="$ai_dir/spec.md"
+  find "$search_path" -name ".cbs-spec" -type d | while read -r spec_dir; do
+    local cell_dir=$(dirname "$spec_dir")
+    local spec_file="$spec_dir/spec.md"
     
     if [ -f "$spec_file" ]; then
       ((total_cells++))

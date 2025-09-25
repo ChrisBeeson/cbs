@@ -239,7 +239,7 @@ cells:
 
 ### 3. Cell Design
 - Follow CBS isolation principles [[memory:8924008]]
-- Define clear interfaces in `ai/spec.md`
+- Define clear interfaces in `.cbs-spec/spec.md`
 - Write comprehensive tests
 
 ### 4. Documentation

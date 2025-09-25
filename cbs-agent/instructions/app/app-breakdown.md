@@ -39,7 +39,7 @@ if [ "$APP_SPEC_STATUS" != "completed" ]; then
 fi
 
 # Load application specification
-APP_SPEC_PATH="applications/$CURRENT_APP/ai/app_spec.md"
+APP_SPEC_PATH="applications/$CURRENT_APP/.cbs-spec/app_spec.md"
 if [ ! -f "$APP_SPEC_PATH" ]; then
   echo "❌ Application specification not found: $APP_SPEC_PATH"
   exit 1

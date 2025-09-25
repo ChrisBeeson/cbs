@@ -36,7 +36,7 @@ phases:
     iteration: 2
     completed_at: "2025-09-20T00:00:00Z"
     last_modified: "2025-09-20T00:00:00Z"
-    spec_path: "applications/my_application/ai/app_spec.md"
+    spec_path: "applications/my_application/.cbs-spec/app_spec.md"
     
   cell_breakdown:
     status: "in_progress"
@@ -267,7 +267,7 @@ $ cbs workflow rollback 2
 
 Current state:
 🎯 Phase: app_spec (iteration 2)
-📝 Restored: applications/my_application/ai/app_spec.md
+📝 Restored: applications/my_application/.cbs-spec/app_spec.md
 🕐 Rollback time: 30 seconds ago
 ```
 
@@ -327,7 +327,7 @@ cbs app-spec approve   # Marks app_spec as completed
 cells:
   user_auth:
     status: "spec_complete"  # spec_pending | spec_complete | implementation_pending | implementation_complete
-    spec_path: "applications/my_app/cells/user_auth/ai/spec.md"
+    spec_path: "applications/my_app/cells/user_auth/.cbs-spec/spec.md"
     tasks_path: "applications/my_app/cells/user_auth/ai/tasks.md"
     iteration: 2
     last_modified: "2025-09-20T00:00:00Z"

@@ -8,7 +8,7 @@ This documentation is kept for backward compatibility.
 
 ```bash
 # Start guard for a cell (path relative to repo root)
-./scripts/cell_guard.sh start examples/applications/flutter_flow_web/cells/flow_ui
+./scripts/cell_guard.sh start applications/flutter_flow_web/cells/flow_ui
 
 # Check status
 ./scripts/cell_guard.sh status

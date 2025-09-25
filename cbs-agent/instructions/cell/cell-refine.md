@@ -47,7 +47,7 @@ if [ -z "$CELL_NAME" ]; then
 fi
 
 # Check cell exists
-CELL_SPEC_PATH="applications/$CURRENT_APP/cells/$CELL_NAME/ai/spec.md"
+CELL_SPEC_PATH="applications/$CURRENT_APP/cells/$CELL_NAME/.cbs-spec/spec.md"
 if [ ! -f "$CELL_SPEC_PATH" ]; then
   echo "❌ Cell specification not found: $CELL_SPEC_PATH"
   echo "Create cell first: cbs cell design $CELL_NAME"
@@ -267,7 +267,7 @@ for affected_cell in $AFFECTED_CELLS; do
   echo "🔄 Updating affected cell: $affected_cell"
   
   # Update message contracts in affected cell specs
-  AFFECTED_SPEC="applications/$CURRENT_APP/cells/$affected_cell/ai/spec.md"
+  AFFECTED_SPEC="applications/$CURRENT_APP/cells/$affected_cell/.cbs-spec/spec.md"
   
   # Update publish/subscribe subjects
   # Update message schemas
@@ -347,7 +347,7 @@ Show the updated cell specification and system impact for user approval.
 - System Integration: ✅ Compatible
 
 ### 📄 Updated Specification
-Location: `applications/$CURRENT_APP/cells/$CELL_NAME/ai/spec.md`
+Location: `applications/$CURRENT_APP/cells/$CELL_NAME/.cbs-spec/spec.md`
 
 ### 🔄 Your Options
 1. **Approve**: Accept changes and continue

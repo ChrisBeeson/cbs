@@ -70,7 +70,7 @@ EOF
 ```
 
 This scaffolds:
-- Cell specification (`ai/spec.md`)
+- Cell specification (`.cbs-spec/spec.md`)
 - Implementation template (`lib/`)
 - Test template (`test/`)
 - Build configuration

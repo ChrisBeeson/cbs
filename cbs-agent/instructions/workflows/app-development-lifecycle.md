@@ -46,7 +46,7 @@ pending_iterations:
 **Actions**:
 1. **Context Gathering**: Understand application purpose, users, key features
 2. **Create App Spec**: Use `@cbs-agent/instructions/core/create-spec.md` adapted for application level
-3. **Generate Structure**: Create `applications/{app_name}/ai/app_spec.md`
+3. **Generate Structure**: Create `applications/{app_name}/.cbs-spec/app_spec.md`
 4. **Set State**: Update workflow state to `app_spec` phase
 
 **Iteration Support**:
@@ -169,7 +169,7 @@ pending_iterations:
 
 **Per-Cell Iteration**:
 1. **Focus Cell**: Set context to specific cell being modified
-2. **Update Spec**: Modify `ai/spec.md` with changes
+2. **Update Spec**: Modify `.cbs-spec/spec.md` with changes
 3. **Validate Contracts**: Ensure message contracts remain valid
 4. **Check Dependencies**: Verify cell dependencies are correct
 5. **Update Related Cells**: Modify cells that communicate with this one

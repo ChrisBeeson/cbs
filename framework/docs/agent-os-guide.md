@@ -162,7 +162,7 @@ cbs-validate-isolation --all
    cbs-cell-messages user_service
    
    # Edit specification
-   # Update ai/spec.md with new message contracts
+   # Update .cbs-spec/spec.md with new message contracts
    ```
 
 4. **Implement Changes**
@@ -361,7 +361,7 @@ cbs-validate-isolation --app
 ### "No message contracts defined"
 ```bash
 # Solution: Update cell specification
-# Edit ai/spec.md and add message contracts
+# Edit .cbs-spec/spec.md and add message contracts
 ```
 
 ## Advanced Usage

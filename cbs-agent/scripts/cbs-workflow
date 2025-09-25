@@ -84,7 +84,7 @@ init_workflow() {
   
   # Create application directory
   local app_dir="$ROOT_DIR/applications/$app_name"
-  mkdir -p "$app_dir/ai"
+  mkdir -p "$app_dir/.cbs-spec"
   mkdir -p "$app_dir/cells"
   
   # Create snapshots directory
@@ -108,7 +108,7 @@ phases:
   app_spec:
     status: "pending"
     iteration: 0
-    spec_path: "applications/$app_name/ai/app_spec.md"
+    spec_path: "applications/$app_name/.cbs-spec/app_spec.md"
     
   cell_breakdown:
     status: "pending"

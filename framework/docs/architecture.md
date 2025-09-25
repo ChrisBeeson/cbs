@@ -28,7 +28,7 @@ This is not a suggestion or best practice - it's an **architectural law** that e
 - **Observable**: Every interaction is visible on the bus
 
 ### 2. Contract-First Development
-- Every cell has `ai/spec.md` defining its message interface before implementation
+- Every cell has `.cbs-spec/spec.md` defining its message interface before implementation
 - **Typed envelopes** with versioned schemas ensure compatibility
 - Messages are the **only** API - no methods, no imports, no direct calls
 - Contracts are language-agnostic and enforceable
@@ -164,7 +164,7 @@ your-project/
 ### Cell Structure
 ```
 cell/
-├── ai/spec.md          # 📋 Specification (interface definition)
+├── .cbs-spec/spec.md   # 📋 Specification (interface definition)
 ├── lib/                # 💻 Implementation
 ├── test/               # 🧪 Tests
 └── pubspec.yaml        # 📦 Dependencies (Dart) or Cargo.toml (Rust)
@@ -275,7 +275,7 @@ Each step is completely independent and can be:
 
 2. **Design the message contracts**
    ```yaml
-   # In ai/spec.md
+   # In .cbs-spec/spec.md
    Messages:
      cbs.user_service.get_user:
        schema: user/v1/GetUser
@@ -294,7 +294,7 @@ Each step is completely independent and can be:
 
 **For each cell:**
 
-1. **Write the spec first** (`ai/spec.md`)
+1. **Write the spec first** (`.cbs-spec/spec.md`)
 2. **Implement the Cell trait**
 3. **Register message handlers**
 4. **Test with mock bus**

@@ -33,7 +33,7 @@ Break the system into cells, each with one responsibility, communicating only vi
   - No direct cell‑to‑cell calls, ever
 
 - **Spec‑first, per cell**
-  - Each cell ships with `ai/spec.md` defining contracts
+  - Each cell ships with `.cbs-spec/spec.md` defining contracts
   - Tests validate both logic and bus handling
 
 - **Composable and replaceable**
@@ -45,7 +45,7 @@ Break the system into cells, each with one responsibility, communicating only vi
 
 ```text
 applications/<app>/cells/<cell>/
-  ai/spec.md          # Interface and behavior
+  .cbs-spec/spec.md   # Interface and behavior
   lib/                # Implementation
   test/               # Tests
   pubspec.yaml        # (Dart) or Cargo.toml (Rust)
@@ -74,7 +74,7 @@ applications/<app>/cells/<cell>/
 
 ### How CBS makes refinement easy
 
-1. Update the target cell’s `ai/spec.md` (new schema version if needed).
+1. Update the target cell’s `.cbs-spec/spec.md` (new schema version if needed).
 2. Adjust tests for that cell; run them in isolation.
 3. Implement the smallest change inside the cell’s boundary.
 4. Publish the new message version; keep old versions until consumers migrate.

@@ -104,7 +104,7 @@ User Action → UI Cell → Logic Cell → Storage Cell → Response
 ```
 
 ### Cell Specifications Preview
-Each cell will have detailed `ai/spec.md` following CBS standards:
+Each cell will have detailed `.cbs-spec/spec.md` following CBS standards:
 - **Interface contracts** (subscribe/publish subjects)
 - **Message schemas** with versioning
 - **Error handling** patterns
@@ -159,7 +159,7 @@ Each cell will have detailed `ai/spec.md` following CBS standards:
 3. **Implementation Planning**: Break down into CBS cells and sprints
 
 ### CBS Implementation Process  
-1. **Cell Specification**: Create detailed `ai/spec.md` for each cell
+1. **Cell Specification**: Create detailed `.cbs-spec/spec.md` for each cell
 2. **Bus Contract Design**: Define message schemas and flows
 3. **Iterative Development**: Implement cells with bus-only communication
 4. **Integration Testing**: Validate message flows work end-to-end
@@ -172,7 +172,7 @@ Each cell will have detailed `ai/spec.md` following CBS standards:
 - **Requirements Traceability**: Map implemented features back to PRD
 
 ### New CLI Features
-- **Automated Implementation**: Use `cbs-workflow implement` to automate cell implementation based on specifications in `ai/spec.md`. This ensures compliance with CBS standards and streamlines the development process.
+- **Automated Implementation**: Use `cbs-workflow implement` to automate cell implementation based on specifications in `.cbs-spec/spec.md`. This ensures compliance with CBS standards and streamlines the development process.
 - **Structured Planning**: Use `cbs-workflow plan` to generate a detailed implementation plan and task breakdown for your application. This helps in organizing tasks for each cell category and tracking progress through different phases.
 
 ## Notes

@@ -37,7 +37,7 @@ validate_app_architecture() {
     return 0
   fi
   
-  local cell_count=$(find "$cells_dir" -name "spec.md" -path "*/ai/spec.md" | wc -l)
+  local cell_count=$(find "$cells_dir" -name "spec.md" -path "*/.cbs-spec/spec.md" | wc -l)
   if [[ $cell_count -eq 0 ]]; then
     echo "  ⚠️  No cells found"
     return 0
@@ -189,12 +189,12 @@ EOF
     local map_age=$(stat -f %m "$cell_map" 2>/dev/null || stat -c %Y "$cell_map" 2>/dev/null || echo 0)
     local newest_spec_age=0
     
-    while IFS= read -r -d '' spec_file; do
+  while IFS= read -r -d '' spec_file; do
       local spec_age=$(stat -f %m "$spec_file" 2>/dev/null || stat -c %Y "$spec_file" 2>/dev/null || echo 0)
       if [[ $spec_age -gt $newest_spec_age ]]; then
         newest_spec_age=$spec_age
       fi
-    done < <(find "$cells_dir" -name "spec.md" -path "*/ai/spec.md" -print0)
+    done < <(find "$cells_dir" -name "spec.md" -path "*/.cbs-spec/spec.md" -print0)
     
     if [[ $newest_spec_age -gt $map_age ]]; then
       echo "  ⚠️  Cell map is outdated (run: python3 cbs-agent/scripts/generate_cell_map.py)"

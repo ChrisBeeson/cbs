@@ -24,7 +24,7 @@ usage() {
 load_cell_subjects() {
   local app_path="$1"
   local cell_name="$2"
-  local spec_path="$app_path/cells/$cell_name/ai/spec.md"
+  local spec_path="$app_path/cells/$cell_name/.cbs-spec/spec.md"
   local subscribe=()
   local publish=()
 
@@ -188,7 +188,7 @@ fi
 
 # Find application path
 app_path=""
-for base_dir in "$ROOT_DIR/applications" "$ROOT_DIR/examples/applications"; do
+for base_dir in "$ROOT_DIR/applications"; do
   if [[ -d "$base_dir/$APP_NAME" ]]; then
     app_path="$base_dir/$APP_NAME"
     echo "📁 Found application: $APP_NAME"

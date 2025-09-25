@@ -507,7 +507,7 @@ This setup should cover most development scenarios for CBS. If you encounter iss
 ## 14) Clarifications, Data Flows, and Conventions
 
 ### 14.1 Data Flows
-- Canonical MVP flow and lifecycle are documented in `ai/docs/data_flows.md`.
+- Canonical MVP flow and lifecycle are documented in `.cbs-spec/docs/data_flows.md`.
 
 ### 14.2 Naming & Subjects
 - Use lowercase snake_case for `service` and `verb` everywhere (envelope and subject).
@@ -530,13 +530,13 @@ This setup should cover most development scenarios for CBS. If you encounter iss
 - Treat `Envelope.id` as correlation id. Emit spans/logs tagged with `service`, `verb`, `schema`.
 
 ### 14.7 Known Gotchas (for LLMs)
-- Don’t mix case styles; don’t handcraft reply subjects; don’t register multiple different handlers for the same subject unless for scaling. See `ai/docs/llm_tripwires.md` for the concise checklist.
+- Don’t mix case styles; don’t handcraft reply subjects; don’t register multiple different handlers for the same subject unless for scaling. See `.cbs-spec/docs/llm_tripwires.md` for the concise checklist.
 
 ### 14.8 Envelope Schema
-- Canonical JSON Schema: `ai/docs/schemas/envelope.schema.json`. Validate envelopes against this for tooling.
+- Canonical JSON Schema: `.cbs-spec/docs/schemas/envelope.schema.json`. Validate envelopes against this for tooling.
 
 ### 14.9 Error Codes
-- MVP error codes are defined in `ai/docs/error_codes.md`. Use `code`, `message`, optional `details`.
+- MVP error codes are defined in `.cbs-spec/docs/error_codes.md`. Use `code`, `message`, optional `details`.
 
 ### 14.10 Error Verbosity Guidance
 - Cells may return verbose custom fields within `error` (e.g., `hint`, `path`, `cell_trace`

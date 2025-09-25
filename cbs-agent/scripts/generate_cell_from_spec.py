@@ -45,8 +45,8 @@ def gen_rust(cell_id, subjects):
     return f"""use async_trait::async_trait;\nuse body_core::{{BodyBus, BusError, Cell, Envelope}};\n\npub struct {struct} {{ id: String }}\n\nimpl {struct} {{\n    pub fn new() -> Self {{ Self {{ id: \"{cell_id}\".into() }} }}\n}}\n\n#[async_trait]\nimpl Cell for {struct} {{\n    fn id(&self) -> &str {{ &self.id }}\n    fn subjects(&self) -> Vec<String> {{ vec![{', '.join([f'\"{s}\"' for s in subs])}] }}\n    async fn register(&self, bus: &dyn BodyBus) -> Result<(), BusError> {{\n        {sub_lines}\n        Ok(())\n    }}\n}}\n"""
 
 def main():
-    ap = argparse.ArgumentParser(description="Generate cell code from ai/spec.md")
-    ap.add_argument("spec", help="Path to ai/spec.md or cell dir containing it")
+    ap = argparse.ArgumentParser(description="Generate cell code from .cbs-spec/spec.md")
+    ap.add_argument("spec", help="Path to .cbs-spec/spec.md or cell dir containing it")
     ap.add_argument("--apply", action="store_true", help="Write files (default dry-run)")
     args = ap.parse_args()
 

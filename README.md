@@ -96,7 +96,7 @@ my-project/
 │       ├── app.yaml        # App configuration
 │       └── cells/          # App-specific cells
 │           └── my_cell/
-│               ├── ai/spec.md    # Cell specification
+│               ├── .cbs-spec/spec.md    # Cell specification
 │               ├── lib/          # Implementation
 │               └── test/         # Tests
 └── .cbs/                   # Framework metadata
@@ -114,7 +114,7 @@ my-project/
 ### Communication Rules
 - **🚌 Bus-Only**: Cells MUST ONLY communicate through the bus
 - **🏷️ Typed Messages**: All communication uses typed envelopes
-- **📝 Spec-First**: Define interface in `ai/spec.md` before implementation
+- **📝 Spec-First**: Define interface in `.cbs-spec/spec.md` before implementation
 - **🧪 Test-Driven**: Unit tests for logic, integration tests for bus handling
 
 ### Message Format
@@ -151,7 +151,7 @@ cargo build --workspace
 
 ## 📚 Examples
 
-Examples live under `examples/applications/`. The `body` binary scans `./applications` relative to your working directory. For examples, run the binary from `examples/`.
+Examples live under `applications/`. The `body` binary scans `./applications` relative to your working directory.
 
 ### List available example apps
 ```bash

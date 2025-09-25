@@ -35,7 +35,7 @@ Ensure we're working within a specific cell context with approved specifications
 - Confirm cell has defined message contracts
 
 **Required Files**:
-- `applications/{app}/cells/{cell}/ai/spec.md` - Approved cell specification
+- `applications/{app}/cells/{cell}/.cbs-spec/spec.md` - Approved cell specification
 - Cell directory structure with `lib/` and `test/` folders
 - Workflow state showing cell_specs phase completed
 

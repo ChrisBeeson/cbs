@@ -25,7 +25,7 @@
   - Create `applications/{{APP}}/cells/{{CELL_ID}}/` directory
   - Initialize `pubspec.yaml` with dependencies
   - Set up basic folder structure (`lib/`, `test/`)
-  - Create initial `ai/spec.md` from template
+  - Create initial `.cbs-spec/spec.md` from template
 
 - [ ] **Message Bus Integration**
   - Implement CBS SDK integration

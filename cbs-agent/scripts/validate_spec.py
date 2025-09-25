@@ -117,7 +117,8 @@ def main():
         if not os.path.isdir(base_path):
             continue
         for dirpath, _, filenames in os.walk(base_path):
-            if os.path.basename(dirpath) == "ai" and "spec.md" in filenames:
+            base = os.path.basename(dirpath)
+            if base in (".cbs-spec", "ai") and "spec.md" in filenames:
                 dna_files.append(os.path.join(dirpath, "spec.md"))
 
     if not dna_files:

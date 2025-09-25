@@ -18,12 +18,12 @@ show_help() {
 list_applications() {
     echo "🔍 Available CBS Applications:"
     echo ""
-    if [ ! -d "$ROOT_DIR/examples/applications" ]; then
+    if [ ! -d "$ROOT_DIR/applications" ]; then
         echo "❌ No applications directory found"
         return 1
     fi
     local found_apps=false
-    for app_dir in "$ROOT_DIR"/examples/applications/*/; do
+    for app_dir in "$ROOT_DIR"/applications/*/; do
         if [ -d "$app_dir" ]; then
             local app_name=$(basename "$app_dir")
             local app_yaml="$app_dir/app.yaml"
@@ -44,10 +44,10 @@ list_applications() {
         fi
     done
     if [ "$found_apps" = false ]; then
-        echo "📭 No CBS applications found in examples/applications/"
+        echo "📭 No CBS applications found in applications/"
         echo ""
         echo "Create your first application:"
-        echo "    mkdir -p examples/applications/my_app/cells"
+        echo "    mkdir -p applications/my_app/cells"
         echo "    # Add app.yaml configuration"
     fi
 }
@@ -61,7 +61,7 @@ show_status() {
         echo "🔬 Cell Focus: ${CBS_CURRENT_CELL:-<none>}"
         echo "🎯 Work Mode: ${CBS_WORK_MODE:-app_overview}"
         if [ -n "${CBS_CURRENT_APP:-}" ]; then
-            local app_path="$ROOT_DIR/examples/applications/$CBS_CURRENT_APP"
+            local app_path="$ROOT_DIR/applications/$CBS_CURRENT_APP"
             if [ ! -d "$app_path" ]; then
                 echo "⚠️  Warning: Application '$CBS_CURRENT_APP' not found at $app_path"
             else
@@ -69,7 +69,7 @@ show_status() {
             fi
         fi
         if [ -n "${CBS_CURRENT_CELL:-}" ] && [ -n "${CBS_CURRENT_APP:-}" ]; then
-            local cell_path="$ROOT_DIR/examples/applications/$CBS_CURRENT_APP/cells/$CBS_CURRENT_CELL"
+            local cell_path="$ROOT_DIR/applications/$CBS_CURRENT_APP/cells/$CBS_CURRENT_CELL"
             if [ ! -d "$cell_path" ]; then
                 echo "⚠️  Warning: Cell '$CBS_CURRENT_CELL' not found at $cell_path"
             else
@@ -86,7 +86,7 @@ show_status() {
 
 set_context() {
     local app_name="$1"
-    local app_path="$ROOT_DIR/examples/applications/$app_name"
+    local app_path="$ROOT_DIR/applications/$app_name"
     if [ ! -d "$app_path" ]; then
         echo "❌ Application '$app_name' not found at $app_path"
         echo ""

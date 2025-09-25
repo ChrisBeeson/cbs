@@ -36,7 +36,7 @@ CURRENT_APP=$(yq eval '.current_app' .cbs-workflow-state)
 CURRENT_PHASE=$(yq eval '.current_phase' .cbs-workflow-state)
 
 # Check if app spec exists
-APP_SPEC_PATH="applications/$CURRENT_APP/ai/app_spec.md"
+APP_SPEC_PATH="applications/$CURRENT_APP/.cbs-spec/app_spec.md"
 if [ ! -f "$APP_SPEC_PATH" ]; then
   echo "❌ No application specification found"
   echo "Create app spec first: cbs app create"
@@ -246,7 +246,7 @@ Show the updated specification to the user for approval.
 - **Success Criteria**: [Updated criteria]
 
 ### 📄 Full Specification
-Location: `applications/$APP_NAME/ai/app_spec.md`
+Location: `applications/$APP_NAME/.cbs-spec/app_spec.md`
 
 ### ✅ Validation Status
 [Summary of validation results]
@@ -276,7 +276,7 @@ if [ "$USER_RESPONSE" = "approve" ]; then
   yq eval '.phases.app_spec.status = "completed"' .cbs-workflow-state
   
   echo "✅ Application specification approved!"
-  echo "📝 Spec: applications/$APP_NAME/ai/app_spec.md"  
+  echo "📝 Spec: applications/$APP_NAME/.cbs-spec/app_spec.md"  
   echo "🔄 Ready for cell breakdown"
   echo ""
   echo "Next step: cbs app breakdown"

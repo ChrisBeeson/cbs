@@ -68,7 +68,7 @@ EOF
 mkdir -p applications/my_app/cells/my_cell/{ai,lib,test}
 
 # Create cell specification
-cat > applications/my_app/cells/my_cell/ai/spec.md << EOF
+cat > applications/my_app/cells/my_cell/.cbs-spec/spec.md << EOF
 # My Cell Specification
 id: my_cell
 name: My Cell

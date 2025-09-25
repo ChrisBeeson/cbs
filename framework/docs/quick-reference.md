@@ -188,12 +188,12 @@ my_app/
 ├── app.yaml
 └── cells/
     ├── user_service/
-    │   ├── ai/spec.md
+    │   ├── .cbs-spec/spec.md
     │   ├── src/lib.rs
     │   ├── Cargo.toml
     │   └── tests/
     └── web_ui/
-        ├── ai/spec.md
+        ├── .cbs-spec/spec.md
         ├── lib/main.dart
         ├── pubspec.yaml
         └── test/

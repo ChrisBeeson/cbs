@@ -22,14 +22,14 @@
 **Steps:**
 1. Create directory structure: `applications/{{APP}}/cells/{{CELL_ID}}/`
 2. Initialize `pubspec.yaml` with CBS SDK dependency
-3. Create basic folder structure: `lib/`, `test/`, `ai/`
-4. Copy and customize `ai/spec.md` from template
+3. Create basic folder structure: `lib/`, `test/`, `.cbs-spec/`
+4. Copy and customize `.cbs-spec/spec.md` from template
 5. Create initial `README.md`
 
 **Acceptance Criteria:**
 - [ ] Directory structure matches CBS standards
 - [ ] `pubspec.yaml` includes all required dependencies
-- [ ] `ai/spec.md` is customized for this cell
+- [ ] `.cbs-spec/spec.md` is customized for this cell
 - [ ] Project builds without errors
 
 **Commands:**

@@ -74,7 +74,7 @@ show_principles() {
   echo
   echo "📝 Required Structure:"
   echo "   applications/<app>/cells/<cell>/"
-  echo "   ├── ai/spec.md          # Cell specification (REQUIRED)"
+  echo "   ├── .cbs-spec/spec.md   # Cell specification (REQUIRED)"
   echo "   ├── lib/               # Implementation"
   echo "   ├── test/              # Tests"
   echo "   └── pubspec.yaml       # Dependencies"
@@ -221,14 +221,14 @@ validate_cell_compliance() {
   
   # Article IV: Contract-First Development  
   echo "  📋 Checking specification requirement..."
-  if [ ! -f "$cell_dir/ai/spec.md" ]; then
-    echo "    ❌ Constitutional violation: Missing required ai/spec.md"
+  if [ ! -f "$cell_dir/.cbs-spec/spec.md" ]; then
+    echo "    ❌ Constitutional violation: Missing required .cbs-spec/spec.md"
     violations=$((violations + 1))
   else
     echo "    ✅ Cell specification found"
     
     # Validate specification completeness
-    if ! validate_specification "$cell_dir/ai/spec.md"; then
+    if ! validate_specification "$cell_dir/.cbs-spec/spec.md"; then
       echo "    ❌ Constitutional violation: Incomplete specification"
       violations=$((violations + 1))
     else
@@ -330,8 +330,8 @@ check_requirement() {
       echo "📋 Checking specification requirement..."
       find "$ROOT_DIR/applications" -name "cells" -type d 2>/dev/null | while read cells_dir; do
         find "$cells_dir" -mindepth 1 -maxdepth 1 -type d | while read cell_dir; do
-          if [ ! -f "$cell_dir/ai/spec.md" ]; then
-            echo "❌ Missing specification: $cell_dir/ai/spec.md"
+          if [ ! -f "$cell_dir/.cbs-spec/spec.md" ]; then
+            echo "❌ Missing specification: $cell_dir/.cbs-spec/spec.md"
           fi
         done
       done
