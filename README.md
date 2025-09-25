@@ -1,244 +1,261 @@
-# Cell Body System (CBS) — MVP
+# Cell Body System (CBS) Framework
 
-The **Cell Body System (CBS)** is a modular framework for building microservice-like applications inspired by biological systems.
+**CBS** is a **revolutionary framework** for building applications inspired by biological systems. Unlike traditional architectures, cells communicate **only** through a message bus - never directly.
 
-At its heart:
+**This is not just another framework - it's a paradigm shift that enables true modularity, language freedom, and natural scaling.**
 
-* **Cells**: the smallest unit of work. Each does *one task and one task well*.
-* **Body**: orchestrates cells and owns the **Body Bus** (message bus).
-* **Envelopes**: typed messages that carry requests and responses.
-* **Specs**: every cell has a spec (its "DNA"), making behaviour testable, reproducible, and replaceable.
+## 🧬 The CBS Way
 
-The MVP demonstrates this concept with Rust cells connected via message passing, with NATS support for distributed scaling.
+**Biological Isolation**: Cells MUST ONLY communicate through the bus
+- No direct method calls between cells
+- No shared objects or state  
+- No imports of other cells
+- All communication via typed messages
+
+**Why This Revolutionary Approach Matters**:
+- ✅ **Zero coupling** - cells don't know about each other
+- ✅ **Polyglot** - mix Rust, Dart, Python naturally
+- ✅ **Fault isolation** - cell failures don't cascade
+- ✅ **Independent scaling** - scale cells individually
+- ✅ **Hot swapping** - replace cells without system restart
+- ✅ **Observable** - every interaction is visible
+
+## 🧬 Core Concepts
+
+- **🔬 Cells**: Single-responsibility components that communicate only via message bus
+- **🚌 Bus**: NATS-based message system with typed envelopes  
+- **📋 Specs**: Machine-readable specifications define cell behavior
+- **🏗️ Applications**: Self-contained projects built with CBS cells
 
 ## 🚀 Quick Start
 
-### CLI Greeter Application
+### Prerequisites
+```bash
+# Rust toolchain
+curl https://sh.rustup.rs -sSf | sh
+
+# macOS: accept Xcode license to enable linker
+sudo xcodebuild -license
+```
+
+### Create New CBS Project
 
 ```bash
-# Run the CLI greeter application
-cargo run -p body -- --app cli_greeter
+# Clone CBS framework
+git clone https://github.com/user/cbs-framework
+cd cbs-framework
 
-# Or run in demo mode (simulated input)
-cargo run -p body -- --app cli_greeter --demo
+# Create new project from template
+./tools/cbs-new my-project
+cd my-project
+
+# Add your first application
+mkdir -p applications/my_app/cells
 ```
 
-### Flutter Flow Web Application
+### Add Cells to Your Application
 
 ```bash
-# Run the Flutter web application (when implemented)
-cargo run -p body -- --app flutter_flow_web
+# Create a new cell
+../cbs-framework/tools/cbs-cell create user_service --app my_app --type logic --lang rust
 
-# Access the web app at http://localhost:8080
+# Build and test
+cargo build
+cargo test --workspace
 ```
 
-### Default Mode (Legacy)
+## 🏗️ Framework Structure
 
+```
+cbs-framework/
+├── framework/              # 🚀 Core CBS Framework
+│   ├── body_core/         # Contracts & traits
+│   ├── body_bus/          # NATS message bus
+│   ├── body/              # Main orchestrator
+│   └── shared_cells/      # Reusable cell library
+├── template/              # 📋 Clean Project Template
+├── examples/              # 📚 Example Applications
+│   ├── cli_greeter/       # CLI greeting example
+│   └── flutter_flow_web/  # Flutter web example
+├── tools/                 # 🛠️ Framework Tools
+│   ├── cbs-new           # Project scaffolding
+│   └── cbs-cell          # Cell creation
+└── docs/                 # 📖 Framework Documentation
+```
+
+## 🎯 Your Project Structure
+
+When you create a new CBS project:
+
+```
+my-project/
+├── Cargo.toml              # Workspace configuration
+├── app.yaml                # Project configuration  
+├── applications/           # Your applications
+│   └── my_app/
+│       ├── app.yaml        # App configuration
+│       └── cells/          # App-specific cells
+│           └── my_cell/
+│               ├── .cbs-spec/spec.md    # Cell specification
+│               ├── lib/          # Implementation
+│               └── test/         # Tests
+└── .cbs/                   # Framework metadata
+```
+
+## 🧬 Cell Architecture
+
+### Cell Categories
+- **`ui`** - User interface components (Flutter, web)
+- **`io`** - Input/output operations (file, network, stdio)  
+- **`logic`** - Business logic and data processing
+- **`integration`** - External service integrations (APIs, databases)
+- **`storage`** - Data persistence and caching
+
+### Communication Rules
+- **🚌 Bus-Only**: Cells MUST ONLY communicate through the bus
+- **🏷️ Typed Messages**: All communication uses typed envelopes
+- **📝 Spec-First**: Define interface in `.cbs-spec/spec.md` before implementation
+- **🧪 Test-Driven**: Unit tests for logic, integration tests for bus handling
+
+### Message Format
+```
+Subject: cbs.{service}.{verb}
+Envelope: {
+  "schema": "service.verb.v1",
+  "payload": { ... },
+  "correlation_id": "uuid-v4"
+}
+```
+
+## 🛠️ Development Tools
+
+### Framework Tools
+- **`cbs-new`** - Scaffold new CBS projects
+- **`cbs-cell`** - Create new cells with proper structure
+- **`cbs-validate`** - Validate CBS compliance (coming soon)
+
+### Running Applications
 ```bash
-# Run default mode (backwards compatibility)
-cargo run -p body
+# Build the framework binaries from repo root
+cargo build --workspace
 
-# Run in demo mode
-cargo run -p body -- --demo
+# List apps in the current project directory (expects ./applications here)
+./target/debug/body --list-apps
+
+# Run a specific application
+./target/debug/body --app my_app
+
+# Demo mode with simulated input
+./target/debug/body --app my_app --demo
 ```
 
-### List Available Applications
+## 📚 Examples
 
+Examples live under `applications/`. The `body` binary scans `./applications` relative to your working directory.
+
+### List available example apps
 ```bash
-# See all available applications
-cargo run -p body -- --list-apps
+# from repo root
+cargo build -p body
+cd examples
+../target/debug/body --list-apps
 ```
 
-### Run Tests
-
+### CLI Greeter (demo)
 ```bash
-# Test all implemented components
-cargo test -p body_core -p greeter_rs -p logic_greet_rs -p io_prompt_name_rs -p io_print_greeting_rs -p body
+cd examples
+../target/debug/body --app cli_greeter --demo
 ```
 
-## 🎯 What You'll See
-
-The MVP demo orchestrates three cells in sequence:
-
-1. **📝 PromptName** — reads a name from stdin (or simulates in demo mode)
-2. **🤖 LogicGreet** — formats a greeting with timestamp
-3. **🖨️ Printer** — outputs the greeting to stdout
-
-Example demo run:
-```
-🧬 Cell Body System (CBS) - MVP Demo
-=====================================
-Running in demo mode...
-
-1. 📝 Prompting for name (simulated)...
-   Input: Ada Lovelace
-
-2. 🤖 Processing greeting...
-   Generated: Hello Ada Lovelace!
-
-3. 🖨️  Printing greeting...
-Hello Ada Lovelace!
-
-✅ Demo completed successfully!
+### Flutter Flow Web (serves prebuilt static assets)
+```bash
+cd examples
+../target/debug/body --app flutter_flow_web
+# Open http://localhost:8080
 ```
 
-## 🏗️ Architecture
+Notes:
+- No Flutter toolchain needed to run; prebuilt web assets are included.
+- Interactive CLI mode is not yet implemented; use `--demo`.
 
-### Core Components
-
-- **`body_core`** - Core contracts (Envelope, BusError, BodyBus, Cell traits)
-- **`body_bus`** - NATS-based message bus implementation  
-- **`body`** - Main orchestrator binary with application loading
-- **Applications** - Self-contained application directories:
-  - `applications/cli_greeter/` - CLI greeting application
-  - `applications/flutter_flow_web/` - Flutter web application (planned)
-- **Shared Cells** - Reusable components in `shared_cells/`:
-  - `shared_cells/rust/web_server/` - HTTP server cell
-  - `shared_cells/dart/cbs_sdk/` - Dart CBS SDK
-
-### Message Flow
-
+### Troubleshooting (macOS)
+```bash
+# If you see a linker error about Xcode license, run:
+sudo xcodebuild -license
+# Then rebuild
+cargo build -p body
 ```
-Envelope → Subject: cbs.{service}.{verb} → Queue Group: {service} → Handler → Response
-```
-
-All communication uses typed JSON envelopes with correlation IDs for tracing.
 
 ## 🧪 Testing Strategy
 
-- **Unit Tests**: 55 tests across all components
-- **Component Tests**: Cell behavior with mocked I/O
-- **Integration Tests**: End-to-end flows (NATS-dependent)
-
-Current test coverage:
-- ✅ Core contracts (9 tests)
-- ✅ All cells (35+ tests) 
-- ✅ Body framework (6 tests)
-- ✅ MockBus integration (fully functional message bus)
-
-## 📚 Documentation
-
-### Architecture & Specs
-* **Master Spec** → [`ai/master_build_specs.md`](ai/master_build_specs.md)
-* **Data Flows** → [`ai/docs/data_flows.md`](ai/docs/data_flows.md)
-* **Product Mission** → [`.agent-os/product/mission.md`](.agent-os/product/mission.md)
-* **Technical Stack** → [`.agent-os/product/tech-stack.md`](.agent-os/product/tech-stack.md)
-* **Development Roadmap** → [`.agent-os/product/roadmap.md`](.agent-os/product/roadmap.md)
-
-### Development Guidelines
-* **LLM Tripwires** → [`ai/docs/llm_tripwires.md`](ai/docs/llm_tripwires.md)
-* **Error Codes** → [`ai/docs/error_codes.md`](ai/docs/error_codes.md)
-* **Agent OS Standards** → [`ai/docs/agent_os_standards.md`](ai/docs/agent_os_standards.md)
-
-### Schema & Validation
-* **Envelope Schema** → [`ai/docs/schemas/envelope.schema.json`](ai/docs/schemas/envelope.schema.json)
-* **Validation Script** → [`ai/scripts/validate_envelopes.sh`](ai/scripts/validate_envelopes.sh)
-
-## ⚙️ Configuration
-
-### Command Line Options
+- **Unit Tests**: Cell logic and behavior
+- **Integration Tests**: Message bus communication
+- **Application Tests**: End-to-end application flows
 
 ```bash
-body [OPTIONS]
+# Test framework
+cd framework && cargo test --workspace
 
-OPTIONS:
-    --app <APP_NAME>    Application to run (e.g., cli_greeter, flutter_flow_web)
-    --list-apps         List all available applications
-    --nats-url <URL>    NATS server URL (default: nats://localhost:4222)
-    --demo              Run in demo mode with simulated input
-    --mock-bus          Use mock bus instead of NATS (for testing)
-    --env <ENV>         Environment override (development, production)
-    --validate          Validate application configuration
-    -h, --help          Print help message
+# Test your project  
+cargo test --workspace
+
+# Test specific cell
+cd applications/my_app/cells/my_cell && cargo test
 ```
 
-### Environment Variables
+## 📖 Documentation
 
-```bash
-CBS_DEFAULT_APP=cli_greeter       # Default application to run
-CBS_APPS_DIR=./applications       # Applications directory
-CBS_ENVIRONMENT=development       # Environment (development, production)
-NATS_URL=nats://localhost:4222    # NATS server URL
-CBS_DEMO_MODE=1                   # Enable demo mode
-CBS_MOCK_BUS=1                    # Use mock bus
-```
+**Start Here:**
+- **[The CBS Way](docs/the-cbs-way.md)** - **Read this first!** Understanding the revolutionary approach
+- **[Quick Reference](docs/quick-reference.md)** - Essential patterns and examples
 
-## 🚧 Current Status
+**Deep Dive:**
+- **[Getting Started](docs/getting-started.md)** - Detailed setup guide
+- **[Architecture](docs/architecture.md)** - Framework architecture overview
+- **[Framework Usage](docs/framework-usage.md)** - Using CBS as a base framework
+- **[Agent-OS Guide](docs/agent-os-guide.md)** - Cell-based development workflow
 
-### ✅ Completed (MVP)
-- [x] Core contracts with comprehensive tests
-- [x] Four example cells with full test coverage
-- [x] Body framework with orchestration
-- [x] Configuration and CLI interface
-- [x] Demo mode and interactive mode
-- [x] Complete documentation
+## 🔧 Tech Stack
 
-### ⚠️ Known Issues
-- NATS integration blocked by Cargo version incompatibility with `async-nats` dependencies
-- **Resolved**: Functional MockBus implementation provides full message bus capabilities for MVP
-- Full distributed NATS mode available when compatible Rust toolchain is used
-
-### 🔄 Next Steps
-1. Implement self-contained application system
-2. Create Flutter Flow web application
-3. Add application configuration validation
-4. Implement shared cell system
-5. Add hot reloading for development
-
-## 🗺️ Roadmap
-
-* **Phase 1 (MVP)**: ✅ Rust cells + message bus + orchestration
-* **Phase 2**: 🚧 Self-contained applications + Flutter web support
-* **Phase 3**: Polyglot support (Python/Dart cells)
-* **Phase 4**: Production features (JetStream, observability, security)
-* **Phase 5**: Advanced features (auto-scaling, self-healing)
-* **Phase 6**: Enterprise platform (governance, compliance, marketplace)
-
-## 🧬 Principles
-
-* **Spec is truth** — behavior defined by machine-readable specs
-* **Isolation** — cells communicate only via the bus
-* **Polyglot** — designed for Rust, Python, Dart (others via adapters)
-* **Simple core** — start small, scale gracefully
-* **Test-driven** — comprehensive test coverage at all levels
+- **Core**: Rust 2021 Edition with Cargo workspace
+- **Message Bus**: NATS with JetStream persistence
+- **Database**: Supabase PostgreSQL with MCP integration
+- **Frontend**: Dart/Flutter for web and mobile
+- **Polyglot**: Python support via cells
+- **Testing**: Built-in test frameworks for each language
 
 ## 🤝 Contributing
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development guidelines and [`ai/docs/agent_os_standards.md`](ai/docs/agent_os_standards.md) for coding standards.
+1. Fork the CBS framework repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Follow CBS cell standards and principles
+4. Add tests for new functionality
+5. Submit pull request
 
-## 🔧 Troubleshooting
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-### NATS Connection Issues
+## 📋 Roadmap
 
-If you encounter NATS-related errors:
+- **✅ Phase 1**: Core framework with Rust cells
+- **🚧 Phase 2**: Project templating and tooling  
+- **📋 Phase 3**: Polyglot support (Python, Go, TypeScript)
+- **📋 Phase 4**: Production features (observability, security)
+- **📋 Phase 5**: Advanced features (auto-scaling, self-healing)
 
-1. **Dependency Conflicts**: Current Cargo version (1.80.0-nightly) incompatible with `async-nats` dependencies requiring `edition2024`
-   - **Workaround**: Use demo mode (`--demo`) or mock bus (`--mock-bus`)
-   - **Solution**: Update to compatible Cargo version when available
+## 🧬 Framework Philosophy
 
-2. **NATS Server Not Running**: 
-   ```bash
-   # Start NATS server
-   docker run -d --name nats-server -p 4222:4222 nats:latest
-   
-   # Verify it's running
-   docker logs nats-server
-   ```
+- **Spec is Truth**: Behavior defined by machine-readable specifications
+- **Biological Isolation**: Cells communicate only via the bus, never directly
+- **Polyglot by Design**: Support multiple languages through message contracts
+- **Simple Core**: Start small, scale gracefully with clear patterns
+- **Test-Driven**: Comprehensive testing at cell, application, and system levels
 
-3. **Port Conflicts**: 
-   ```bash
-   # Use different port
-   docker run -d --name nats-server -p 4223:4222 nats:latest
-   cargo run -p body -- --nats-url nats://localhost:4223
-   ```
+---
 
-### Build Issues
+**Ready to build your first CBS application?**
 
 ```bash
-# Clean and rebuild
-cargo clean
-cargo build
-
-# Test without NATS dependencies
-cargo test -p body_core -p greeter_rs -p logic_greet_rs -p io_prompt_name_rs -p io_print_greeting_rs -p body
+git clone https://github.com/user/cbs-framework
+cd cbs-framework
+./tools/cbs-new my-amazing-app
 ```

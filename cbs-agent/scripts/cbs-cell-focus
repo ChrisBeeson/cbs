@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Cell Focus Tool - Set and display the current focused cell context
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "Usage: cbs-cell-focus [--app <app_name>] [--cell <cell_name>] [--show]"
+}
+
+STATE_FILE="$ROOT_DIR/.cbs-workflow-state"
+
+# Ensure state exists
+if [ ! -f "$STATE_FILE" ]; then
+  echo "❌ No workflow state found. Initialize with: cbs-workflow init <app_name>"
+  exit 1
+fi
+
+# Parse args
+SHOW_ONLY=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --app)
+      yq eval ".current_app = \"$2\"" -i "$STATE_FILE"
+      shift 2
+      ;;
+    --cell)
+      yq eval ".active_cell = \"$2\"" -i "$STATE_FILE"
+      shift 2
+      ;;
+    --show)
+      SHOW_ONLY=true; shift ;;
+    *) usage; exit 1;;
+  esac
+done
+
+CURRENT_APP=$(yq eval '.current_app' "$STATE_FILE")
+CURRENT_CELL=$(yq eval '.active_cell' "$STATE_FILE")
+
+if [ "$SHOW_ONLY" = true ]; then
+  echo "🧭 Current Focus"
+  echo "App:  ${CURRENT_APP:-<none>}"
+  echo "Cell: ${CURRENT_CELL:-<none>}"
+  exit 0
+fi
+
+# Validate app exists
+if [ -n "$CURRENT_APP" ] && [ "$CURRENT_APP" != "null" ]; then
+  local app_path="$ROOT_DIR/applications/$CURRENT_APP"
+  if [ -d "$app_path" ]; then
+    echo "📁 Found application: $CURRENT_APP"
+  else
+    echo "❌ Application not found: $CURRENT_APP"
+    exit 1
+  fi
+fi
+
+# Validate cell exists when set
+if [ -n "${CURRENT_CELL:-}" ] && [ "$CURRENT_CELL" != "null" ]; then
+  local cell_path="$ROOT_DIR/applications/$CURRENT_APP/cells/$CURRENT_CELL"
+  if [ -d "$cell_path" ]; then
+    echo "🧬 Focused cell: $CURRENT_CELL"
+    # Show spec path if present
+    local spec_file="$cell_path/.cbs-spec/spec.md"
+    if [ -f "$spec_file" ]; then
+      echo "   📋 Spec: $spec_file"
+    else
+      echo "   ⚠️  Missing specification (.cbs-spec/spec.md)"
+    fi
+  else
+    echo "❌ Cell not found: $CURRENT_CELL in $CURRENT_APP"
+    exit 1
+  fi
+fi
+
+# If only app set, show available cells
+if [ -n "$CURRENT_APP" ] && [ "$CURRENT_APP" != "null" ] && { [ -z "${CURRENT_CELL:-}" ] || [ "$CURRENT_CELL" = "null" ]; }; then
+  echo "📚 Cells in $CURRENT_APP:"
+  local app_cells_dir="$ROOT_DIR/applications/$CURRENT_APP/cells"
+  if [ -d "$app_cells_dir" ]; then
+    find "$app_cells_dir" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort | sed 's/^/ - /'
+  else
+    echo " (none)"
+  fi
+fi
+

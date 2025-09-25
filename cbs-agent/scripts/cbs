@@ -1,0 +1,211 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Unified CBS CLI - single entry point for all CBS development tools
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "CBS - Cell Body System Development CLI"
+  echo "Usage: cbs <command> [args...]"
+  echo
+  echo "✨ Friendly commands:"
+  echo "  new app <name>                      Create a new CBS app (workflow + spec)"
+  echo "  refine app [name]                   Jump to refining the app spec"
+  echo "  new cell <id> [--app A] [--category C] [--language L]"
+  echo "                                      Create a new cell spec via Spec‑Kit"
+  echo "  refine cell <id>                    Jump to refining a cell spec"
+  echo "  wizard                              Guided flow (choose app/cell actions)"
+  echo
+  echo "🔬 Spec-Kit Integration Commands:"
+  echo "  /spec <cell_id> [--app] [--category] [--language]     Create detailed cell specification"
+  echo "  /plan <cell_id> [--validate] [--timeline]             Generate implementation plan"
+  echo "  /tasks <cell_id> [--format] [--parallel]              Generate task breakdown"
+  echo "  /implement <cell_id> [--phase] [--task] [--dry-run]   Execute implementation"
+  echo "  /validate-spec <cell_id>                              Validate specification completeness"
+  echo "  /check-prerequisites <cell_id>                        Check implementation prerequisites"
+  echo "  /progress <cell_id>                                   Show implementation progress"
+  echo
+  echo "🏗️ Traditional CBS Commands:"
+  echo "  context <app_name>                    Set application context"
+  echo "  focus <cell_name>                     Focus on specific cell"
+  echo "  work <app> <cell>                     Start work session on app/cell"
+  echo "  validate [--specs|--envelopes|--map|--architecture]  Full validation suite"
+  echo "  isolation [--app|--all]               Validate cell isolation"
+  echo "  validate-code-isolation [--app|--all] Validate code-level isolation"
+  echo "  realtime-feedback [--watch|--app]     Real-time CBS compliance feedback"
+  echo "  bus-simulator --app <app> --cell <cell>  Simulate bus interactions"
+  echo "  cell <action> [args...]               Cell management (search, install, etc)"
+  echo "  app-spec <app>                        Create/update app specification"
+  echo "  regenerate-cell <app> <cell>          Regenerate cell from spec"
+  echo "  workflow <action> [args...]           Workflow state management"
+  echo
+  echo "📜 Constitutional Commands:"
+  echo "  constitution show                     Display the CBS Constitution"
+  echo "  constitution validate [--app|--cell] Validate constitutional compliance"
+  echo "  constitution principles               Show core constitutional principles"
+  echo "  constitution check <requirement>      Check specific constitutional requirement"
+  echo "  --help, -h                            Show this help"
+  echo
+  echo "💡 Quick Start with Spec-Kit:"
+  echo "  cbs /spec user_auth --app my_app --category logic --language dart"
+  echo "  cbs /plan user_auth --validate"
+  echo "  cbs /implement user_auth --phase foundation"
+  echo
+  echo "💡 Quick Start (friendly):"
+  echo "  cbs new app my_app                    # init workflow + create app_spec"
+  echo "  cbs new cell user_auth --app my_app   # create cell spec"
+  echo
+  echo "See individual scripts for detailed usage."
+}
+
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 1
+fi
+
+cmd="$1"
+shift
+
+case "$cmd" in
+  # Friendly aliases -------------------------------------------------------
+  new)
+    subcmd="${1-}"
+    shift || true
+    case "$subcmd" in
+      app)
+        app_name="${1-}"
+        if [ -z "$app_name" ]; then echo "Usage: cbs new app <name>"; exit 1; fi
+        "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" init "$app_name"
+        "$ROOT_DIR/cbs-agent/scripts/cbs-app-spec" "$app_name" || true
+        echo ""
+        echo "✅ New app ready: $app_name"
+        echo "📝 Edit: applications/$app_name/.cbs-spec/app_spec.md"
+        echo "➡️  Next: cbs app-spec $app_name  |  cbs app refine"
+        ;;
+      cell)
+        cell_id="${1-}"
+        if [ -z "$cell_id" ]; then echo "Usage: cbs new cell <id> [--app A] [--category C] [--language L]"; exit 1; fi
+        shift || true
+        exec "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /spec "$cell_id" "$@"
+        ;;
+      *)
+        echo "Usage: cbs new (app|cell) ..."; exit 1;;
+    esac
+    ;;
+
+  refine)
+    subcmd="${1-}"
+    shift || true
+    case "$subcmd" in
+      app)
+        app_name="${1-}"
+        if [ -n "$app_name" ] && [ ! -f "$ROOT_DIR/.cbs-workflow-state" ]; then
+          "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" init "$app_name"
+        fi
+        "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" set-phase app_spec || true
+        if [ -n "$app_name" ]; then
+          "$ROOT_DIR/cbs-agent/scripts/cbs-app-spec" "$app_name" || true
+          target_app="$app_name"
+        else
+          target_app=$(yq eval '.current_app' "$ROOT_DIR/.cbs-workflow-state" 2>/dev/null || echo "")
+          [ -n "$target_app" ] && "$ROOT_DIR/cbs-agent/scripts/cbs-app-spec" "$target_app" >/dev/null 2>&1 || true
+        fi
+        echo ""
+        echo "📝 Refine app spec: applications/${target_app:-<current>}/.cbs-spec/app_spec.md"
+        echo "➡️  Tip: cbs app refine 'Describe your change'"
+        ;;
+      cell)
+        cell_id="${1-}"
+        if [ -z "$cell_id" ]; then echo "Usage: cbs refine cell <id>"; exit 1; fi
+        "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /spec "$cell_id" >/dev/null 2>&1 || true
+        "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /validate-spec "$cell_id" || true
+        echo ""
+        spec_dir="$ROOT_DIR/specs/$(ls -1 \"$ROOT_DIR/specs\" 2>/dev/null | grep \"$cell_id\" | head -n1)"
+        if [ -n "$spec_dir" ] && [ -f "$spec_dir/spec.md" ]; then
+          echo "📝 Refine cell spec: $spec_dir/spec.md"
+        else
+          echo "📝 Refine cell spec created under: specs/<date>-$cell_id/spec.md"
+        fi
+        echo "➡️  Next: cbs /plan $cell_id  |  cbs /tasks $cell_id"
+        ;;
+      *)
+        echo "Usage: cbs refine (app|cell) ..."; exit 1;;
+    esac
+    ;;
+
+  wizard)
+    echo "CBS Wizard"
+    echo "1) New app"
+    echo "2) Refine app"
+    echo "3) New cell"
+    echo "4) Refine cell"
+    printf "Choose [1-4]: "
+    read -r choice
+    case "$choice" in
+      1)
+        printf "App name: "; read -r an; exec "$ROOT_DIR/cbs-agent/scripts/cbs" new app "$an" ;;
+      2)
+        printf "App name (optional): "; read -r an; exec "$ROOT_DIR/cbs-agent/scripts/cbs" refine app ${an:+"$an"} ;;
+      3)
+        printf "Cell id: "; read -r cid; exec "$ROOT_DIR/cbs-agent/scripts/cbs" new cell "$cid" ;;
+      4)
+        printf "Cell id: "; read -r cid; exec "$ROOT_DIR/cbs-agent/scripts/cbs" refine cell "$cid" ;;
+      *) echo "Cancelled"; exit 1;;
+    esac
+    ;;
+  # Spec-Kit Integration Commands
+  /spec|/plan|/tasks|/implement|/validate-spec|/check-prerequisites|/progress)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-spec" "$cmd" "$@"
+    ;;
+  
+  # Traditional CBS Commands  
+  context)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-app-context" "$@"
+    ;;
+  focus)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell-focus" "$@"
+    ;;
+  work)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-work" "$@"
+    ;;
+  validate)
+    shift || true
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-validate" ${1:+"$@"}
+    ;;
+  isolation)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-validate-isolation" "$@"
+    ;;
+  validate-code-isolation)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-validate-code-isolation" "$@"
+    ;;
+  realtime-feedback)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-realtime-feedback" "$@"
+    ;;
+  bus-simulator)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-bus-simulator" "$@"
+    ;;
+  cell)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-cell" "$@"
+    ;;
+  app-spec)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-app-spec" "$@"
+    ;;
+  regenerate-cell)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-regenerate-cell" "$@"
+    ;;
+  workflow)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-workflow" "$@"
+    ;;
+  constitution)
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-constitution" "$@"
+    ;;
+  --help|-h)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "Unknown command: $cmd"
+    usage
+    exit 1
+    ;;
+esac

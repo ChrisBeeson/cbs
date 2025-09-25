@@ -1,0 +1,293 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Architecture Validator - Enforces app-level cell orchestration and overview requirements
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "Usage: cbs-validate-architecture [--app <app_name>|--all]"
+  echo "Validates application-level cell architecture and documentation"
+  echo
+  echo "Options:"
+  echo "  --app <name>    Validate specific application"
+  echo "  --all          Validate all applications (default)"
+  echo
+  echo "Checks:"
+  echo "  - Required architecture documentation exists"
+  echo "  - Cell inventory completeness"
+  echo "  - Message flow documentation"
+  echo "  - Integration point mapping"
+  echo "  - Cell collaboration patterns"
+}
+
+validate_app_architecture() {
+  local app_path="$1"
+  local app_name="$(basename "$app_path")"
+  local ai_dir="$app_path/ai"
+  local cells_dir="$app_path/cells"
+  
+  echo "📐 Validating architecture: $app_name"
+  
+  local errors=0
+  local warnings=0
+  
+  # Check if app has cells
+  if [[ ! -d "$cells_dir" ]]; then
+    echo "  ⚠️  No cells directory found"
+    return 0
+  fi
+  
+  local cell_count=$(find "$cells_dir" -name "spec.md" -path "*/.cbs-spec/spec.md" | wc -l)
+  if [[ $cell_count -eq 0 ]]; then
+    echo "  ⚠️  No cells found"
+    return 0
+  fi
+  
+  echo "  📊 Found $cell_count cells"
+  
+  # Create ai directory if it doesn't exist
+  mkdir -p "$ai_dir"
+  
+  # Check required architecture documents
+  local required_docs=(
+    "cell_map.md:Cell inventory and contracts"
+    "architecture.md:High-level app design and cell interactions"
+    "message_flows.md:Key business processes as message sequences"
+    "integration_map.md:External system connections"
+  )
+  
+  for doc_info in "${required_docs[@]}"; do
+    local doc_file="${doc_info%%:*}"
+    local doc_desc="${doc_info##*:}"
+    local doc_path="$ai_dir/$doc_file"
+    
+    if [[ ! -f "$doc_path" ]]; then
+      echo "  ❌ Missing: $doc_file ($doc_desc)"
+      ((errors++))
+      
+      # Generate template
+      case "$doc_file" in
+        "architecture.md")
+          cat > "$doc_path" << EOF
+# $app_name Architecture
+
+## Overview
+Brief description of the application and its purpose.
+
+## Cell Inventory
+List of all cells and their roles:
+- **cell_name** (category): Purpose and responsibilities
+
+## System Architecture
+High-level view of how cells collaborate:
+- Core workflow patterns
+- Data flow through the system
+- Key integration points
+
+## Cell Collaboration Patterns
+Document the main patterns used:
+- **Request/Response**: UI → Logic → Storage
+- **Event Broadcasting**: Logic publishes, multiple cells subscribe
+- **Pipeline Processing**: Sequential data processing
+- **State Synchronization**: Shared state management
+
+## External Integrations
+- Database connections
+- API integrations
+- Third-party services
+
+## Deployment Architecture
+- Environment considerations
+- Scaling patterns
+- Performance considerations
+EOF
+          echo "  ✨ Generated template: $doc_file"
+          ;;
+        "message_flows.md")
+          cat > "$doc_path" << EOF
+# $app_name Message Flows
+
+## Core Business Processes
+
+### Process 1: [Name]
+\`\`\`
+1. user_action → cbs.ui_cell.action
+2. cbs.ui_cell.action → cbs.logic_cell.process
+3. cbs.logic_cell.process → cbs.storage_cell.save
+4. cbs.storage_cell.saved → cbs.ui_cell.update
+\`\`\`
+
+### Process 2: [Name]
+\`\`\`
+[Document key message sequences]
+\`\`\`
+
+## Event Broadcasting Patterns
+- **Event**: cbs.service.event_name
+  - **Publishers**: cell_name
+  - **Subscribers**: cell1, cell2, cell3
+  - **Purpose**: Description of what this event accomplishes
+
+## Error Handling Flows
+- How errors propagate through the system
+- Error recovery patterns
+- User notification patterns
+EOF
+          echo "  ✨ Generated template: $doc_file"
+          ;;
+        "integration_map.md")
+          cat > "$doc_path" << EOF
+# $app_name Integration Map
+
+## External System Connections
+
+### Database
+- **Type**: [Supabase/PostgreSQL/etc]
+- **Cells**: List cells that interact with database
+- **Tables**: Key tables and their purpose
+- **Access Patterns**: Read/write patterns
+
+### APIs
+- **Service**: [External API name]
+- **Cells**: Which cells handle this integration
+- **Endpoints**: Key endpoints used
+- **Authentication**: How auth is handled
+
+### Third-Party Services
+- **Service**: [Service name]
+- **Purpose**: What it's used for
+- **Integration Cell**: Which cell handles this
+- **Configuration**: Key config requirements
+
+## Internal Cell Dependencies
+- **Cell A** depends on messages from **Cell B**
+- **Cell C** broadcasts to **Cell D, E, F**
+
+## Data Flow Boundaries
+- Where data enters the system
+- How data is transformed between cells
+- Where data exits the system
+EOF
+          echo "  ✨ Generated template: $doc_file"
+          ;;
+      esac
+    else
+      # Check if document has content (more than just headers)
+      local content_lines=$(grep -v '^#' "$doc_path" | grep -v '^$' | wc -l)
+      if [[ $content_lines -lt 3 ]]; then
+        echo "  ⚠️  Sparse: $doc_file (needs more content)"
+        ((warnings++))
+      else
+        echo "  ✅ Present: $doc_file"
+      fi
+    fi
+  done
+  
+  # Validate cell_map.md is up to date
+  local cell_map="$ai_dir/cell_map.md"
+  if [[ -f "$cell_map" ]]; then
+    local map_age=$(stat -f %m "$cell_map" 2>/dev/null || stat -c %Y "$cell_map" 2>/dev/null || echo 0)
+    local newest_spec_age=0
+    
+  while IFS= read -r -d '' spec_file; do
+      local spec_age=$(stat -f %m "$spec_file" 2>/dev/null || stat -c %Y "$spec_file" 2>/dev/null || echo 0)
+      if [[ $spec_age -gt $newest_spec_age ]]; then
+        newest_spec_age=$spec_age
+      fi
+    done < <(find "$cells_dir" -name "spec.md" -path "*/.cbs-spec/spec.md" -print0)
+    
+    if [[ $newest_spec_age -gt $map_age ]]; then
+      echo "  ⚠️  Cell map is outdated (run: python3 cbs-agent/scripts/generate_cell_map.py)"
+      ((warnings++))
+    fi
+  fi
+  
+  # Summary
+  if [[ $errors -eq 0 && $warnings -eq 0 ]]; then
+    echo "  ✅ Architecture validation passed"
+  elif [[ $errors -eq 0 ]]; then
+    echo "  ⚠️  Architecture validation passed with $warnings warnings"
+  else
+    echo "  ❌ Architecture validation failed with $errors errors, $warnings warnings"
+    return 1
+  fi
+  
+  return 0
+}
+
+# Parse arguments
+APP_NAME=""
+VALIDATE_ALL=true
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --app)
+      APP_NAME="$2"
+      VALIDATE_ALL=false
+      shift 2
+      ;;
+    --all)
+      VALIDATE_ALL=true
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+echo "🏗️  CBS Architecture Validation"
+echo "================================"
+
+failed_apps=0
+
+if [[ "$VALIDATE_ALL" == true ]]; then
+  # Validate all applications
+  for base_dir in "$ROOT_DIR/applications" "$ROOT_DIR/examples/applications"; do
+    if [[ ! -d "$base_dir" ]]; then
+      continue
+    fi
+    
+    for app_path in "$base_dir"/*; do
+      if [[ -d "$app_path" ]]; then
+        if ! validate_app_architecture "$app_path"; then
+          ((failed_apps++))
+        fi
+        echo
+      fi
+    done
+  done
+else
+  # Validate specific application
+  app_found=false
+  for base_dir in "$ROOT_DIR/applications" "$ROOT_DIR/examples/applications"; do
+    app_path="$base_dir/$APP_NAME"
+    if [[ -d "$app_path" ]]; then
+      app_found=true
+      if ! validate_app_architecture "$app_path"; then
+        ((failed_apps++))
+      fi
+      break
+    fi
+  done
+  
+  if [[ "$app_found" == false ]]; then
+    echo "❌ Application not found: $APP_NAME"
+    exit 1
+  fi
+fi
+
+echo "🏁 Architecture validation complete"
+if [[ $failed_apps -eq 0 ]]; then
+  echo "✅ All applications passed architecture validation"
+  exit 0
+else
+  echo "❌ $failed_apps applications failed architecture validation"
+  exit 1
+fi

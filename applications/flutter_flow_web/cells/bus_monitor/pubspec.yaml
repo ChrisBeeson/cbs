@@ -1,0 +1,22 @@
+name: bus_monitor_cell
+description: CBS Bus Monitor Cell for real-time message monitoring
+version: 1.1.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cbs_sdk:
+    path: ../../../../../framework/shared_cells/dart/cbs_sdk
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mockito: ^5.4.2
+  build_runner: ^2.4.7
+
+flutter:

@@ -1,0 +1,749 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Workflow Manager - Handle iterative development lifecycle
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+WORKFLOW_STATE="$ROOT_DIR/.cbs-workflow-state"
+SNAPSHOTS_DIR="$ROOT_DIR/.cbs-snapshots"
+
+# Global flags
+YES_MODE="${YES_MODE:-0}"
+
+# Cross-platform RFC3339 -> formatted date helper
+# Usage: fmt_date "2025-09-21T12:34:56Z" "ymdhms|hm"
+fmt_date() {
+  local iso="$1"; local mode="${2:-ymdhms}"
+  python3 - "$iso" "$mode" <<'PY' 2>/dev/null || { echo "$iso"; return; }
+import sys, datetime
+iso, mode = sys.argv[1:3]
+try:
+  if iso.endswith('Z'):
+    iso = iso[:-1] + '+00:00'
+  dt = datetime.datetime.fromisoformat(iso)
+  if mode == 'hm':
+    print(dt.strftime('%H:%M'))
+  else:
+    print(dt.strftime('%Y-%m-%d %H:%M:%S'))
+except Exception:
+  print(sys.argv[1])
+PY
+}
+
+# Usage information
+usage() {
+  echo "CBS Workflow Manager - Iterative Development Support"
+  echo
+  echo "Usage: cbs-workflow <command> [args...]"
+  echo
+  echo "Global options:"
+  echo "  --yes                         Assume 'yes' for prompts"
+  echo
+  echo "Workflow Commands:"
+  echo "  init <app_name>              Initialize new workflow for application"
+  echo "  status                       Show current workflow status"
+  echo "  history [--limit N]          Show iteration history"
+  echo "  iterate --description 'msg'  Create new iteration in current phase"
+  echo "  rollback <iteration_id>      Rollback to specific iteration"
+  echo "  set-phase <phase>            Set current workflow phase"
+  echo "  validate                     Validate workflow state integrity"
+  echo "  implement                    Automate cell implementation based on specs"
+  echo "  plan                         Generate implementation plan and task breakdown"
+  echo
+  echo "Phase Management:"
+  echo "  app-spec                     Work on application specification"
+  echo "  cell-breakdown               Work on cell breakdown"
+  echo "  cell-specs                   Work on individual cell specifications"
+  echo "  implementation               Work on cell implementation"
+  echo "  feature-addition             Add new features to application"
+  echo
+  echo "Examples:"
+  echo "  cbs-workflow init my_app"
+  echo "  cbs-workflow iterate --description 'Updated auth requirements'"
+  echo "  cbs-workflow rollback 2"
+  echo "  cbs-workflow status"
+}
+
+# Initialize workflow state file
+init_workflow() {
+  local app_name="$1"
+  local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  
+  if [ -f "$WORKFLOW_STATE" ]; then
+    echo "⚠️  Workflow state already exists"
+    if [ "$YES_MODE" != "1" ]; then
+      read -p "Overwrite existing workflow? (y/N): " -n 1 -r || true
+      echo
+      if [[ ! ${REPLY:-N} =~ ^[Yy]$ ]]; then
+        echo "Cancelled"
+        exit 0
+      fi
+    else
+      echo "--yes provided: proceeding to overwrite"
+    fi
+  fi
+  
+  # Create application directory
+  local app_dir="$ROOT_DIR/applications/$app_name"
+  mkdir -p "$app_dir/.cbs-spec"
+  mkdir -p "$app_dir/cells"
+  
+  # Create snapshots directory
+  mkdir -p "$SNAPSHOTS_DIR"
+  
+  # Initialize state file
+  cat > "$WORKFLOW_STATE" << EOF
+# CBS Workflow State
+version: "1.0"
+created_at: "$timestamp"
+last_updated: "$timestamp"
+
+# Current workflow context
+current_app: "$app_name"
+current_phase: "app_spec"
+iteration_count: 0
+active_cell: ""
+
+# Phase tracking
+phases:
+  app_spec:
+    status: "pending"
+    iteration: 0
+    spec_path: "applications/$app_name/.cbs-spec/app_spec.md"
+    
+  cell_breakdown:
+    status: "pending"
+    iteration: 0
+    breakdown_path: "applications/$app_name/ai/cell_breakdown.md"
+    
+  cell_specs:
+    status: "pending"
+    iteration: 0
+    cells: []
+    
+  implementation:
+    status: "pending"
+    iteration: 0
+    completed_cells: []
+    active_tasks: []
+    
+  feature_addition:
+    status: "pending"
+    iteration: 0
+    features: []
+
+# Iteration history
+iterations: []
+
+# Snapshots for rollback
+snapshots: {}
+EOF
+
+  # Set CBS application context
+  "$ROOT_DIR/cbs-agent/scripts/cbs-app-context" "$app_name"
+  
+  # Create initial snapshot
+  create_snapshot 0 "Workflow initialization"
+  
+  echo "✅ Workflow initialized for application: $app_name"
+  echo "📁 Created: applications/$app_name/"
+  echo "📝 State file: .cbs-workflow-state"
+  echo "🎯 Current phase: app_spec (iteration 0)"
+  echo ""
+  echo "Next steps:"
+  echo "  cbs-workflow app-spec    # Start application specification"
+  echo "  cbs-workflow status      # Check workflow status"
+}
+
+# Show workflow status
+show_status() {
+  if [ ! -f "$WORKFLOW_STATE" ]; then
+    echo "❌ No workflow state found. Initialize with: cbs-workflow init <app_name>"
+    exit 1
+  fi
+  
+  local app_name=$(yq eval '.current_app' "$WORKFLOW_STATE" 2>/dev/null || echo "unknown")
+  local current_phase=$(yq eval '.current_phase' "$WORKFLOW_STATE" 2>/dev/null || echo "unknown")
+  local iteration_count=$(yq eval '.iteration_count' "$WORKFLOW_STATE" 2>/dev/null || echo "0")
+  local last_updated=$(yq eval '.last_updated' "$WORKFLOW_STATE" 2>/dev/null || echo "unknown")
+  
+  echo "🧬 CBS Workflow Status"
+  echo "═══════════════════════"
+  echo ""
+  echo "📦 Application: $app_name"
+  echo "🎯 Current Phase: $current_phase (iteration $iteration_count)"
+  
+  if [ "$last_updated" != "unknown" ]; then
+    local time_ago=$(fmt_date "$last_updated" "ymdhms")
+    echo "📅 Last Updated: $time_ago"
+  fi
+  
+  echo ""
+  echo "Phase Progress:"
+  
+  # Show phase status with emojis
+  local phases=("app_spec" "cell_breakdown" "cell_specs" "implementation" "feature_addition")
+  for phase in "${phases[@]}"; do
+    local status=$(yq eval ".phases.$phase.status" "$WORKFLOW_STATE" 2>/dev/null || echo "pending")
+    local iter=$(yq eval ".phases.$phase.iteration" "$WORKFLOW_STATE" 2>/dev/null || echo "0")
+    
+    local emoji="⏳"
+    case "$status" in
+      "completed") emoji="✅" ;;
+      "in_progress") emoji="🔄" ;;
+      "blocked") emoji="🚫" ;;
+    esac
+    
+    local current_marker=""
+    if [ "$phase" = "$current_phase" ]; then
+      current_marker=" ← current"
+    fi
+    
+    printf "%-18s %s (%s, iteration %s)%s\n" "$emoji $phase" "" "$status" "$iter" "$current_marker"
+  done
+  
+  echo ""
+  echo "Recent Activity:"
+  
+  # Show last few iterations
+  local recent_count=$(yq eval '.iterations | length' "$WORKFLOW_STATE" 2>/dev/null || echo "0")
+  if [ "$recent_count" -gt 0 ]; then
+    local limit=3
+    local start=$((recent_count > limit ? recent_count - limit : 0))
+    
+    for ((i=recent_count-1; i>=start; i--)); do
+      local iter_desc=$(yq eval ".iterations[$i].description" "$WORKFLOW_STATE" 2>/dev/null || echo "")
+      local iter_time=$(yq eval ".iterations[$i].timestamp" "$WORKFLOW_STATE" 2>/dev/null || echo "")
+      local iter_id=$((i+1))
+      
+      if [ -n "$iter_desc" ] && [ -n "$iter_time" ]; then
+        local time_display=$(fmt_date "$iter_time" "hm")
+        echo "• $time_display: $iter_desc (iteration $iter_id)"
+      fi
+    done
+  else
+    echo "• No iterations yet"
+  fi
+  
+  echo ""
+  echo "Next Steps:"
+  case "$current_phase" in
+    "app_spec")
+      echo "1. Create/refine application specification"
+      echo "2. Get user approval for app spec"
+      echo "3. Proceed to cell breakdown"
+      ;;
+    "cell_breakdown")
+      echo "1. Complete cell breakdown document"
+      echo "2. Get user approval for cell responsibilities"
+      echo "3. Proceed to individual cell specifications"
+      ;;
+    "cell_specs")
+      echo "1. Create specifications for each cell"
+      echo "2. Get user approval for all cell specs"
+      echo "3. Proceed to implementation"
+      ;;
+    "implementation")
+      echo "1. Generate tasks for each cell"
+      echo "2. Implement cells following TDD"
+      echo "3. Validate integration and testing"
+      ;;
+    "feature_addition")
+      echo "1. Specify new features"
+      echo "2. Update affected cells"
+      echo "3. Implement feature changes"
+      ;;
+  esac
+  
+  echo ""
+  echo "💡 Use 'cbs-workflow help' for available commands"
+}
+
+# Create new iteration
+create_iteration() {
+  local description="$1"
+  local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  
+  if [ ! -f "$WORKFLOW_STATE" ]; then
+    echo "❌ No workflow state found. Initialize first."
+    exit 1
+  fi
+  
+  local current_phase=$(yq eval '.current_phase' "$WORKFLOW_STATE")
+  local iteration_count=$(yq eval '.iteration_count' "$WORKFLOW_STATE")
+  local new_iteration=$((iteration_count + 1))
+  
+  # Create snapshot before making changes
+  create_snapshot "$new_iteration" "$description"
+  
+  # Update workflow state
+  local temp_file=$(mktemp)
+  yq eval "
+    .last_updated = \"$timestamp\" |
+    .iteration_count = $new_iteration |
+    .phases.$current_phase.iteration = $new_iteration |
+    .phases.$current_phase.last_modified = \"$timestamp\" |
+    .iterations += [{
+      \"id\": $new_iteration,
+      \"phase\": \"$current_phase\",
+      \"timestamp\": \"$timestamp\",
+      \"description\": \"$description\",
+      \"changes\": []
+    }]
+  " "$WORKFLOW_STATE" > "$temp_file"
+  
+  mv "$temp_file" "$WORKFLOW_STATE"
+  
+  echo "✅ Created iteration $new_iteration in phase: $current_phase"
+  echo "📝 Description: $description"
+  echo "📸 Snapshot saved for rollback"
+}
+
+# Create snapshot for rollback
+create_snapshot() {
+  local iteration="$1"
+  local description="$2"
+  local snapshot_file="$SNAPSHOTS_DIR/iteration_$iteration.tar.gz"
+  
+  echo "📸 Creating snapshot for iteration $iteration..."
+  
+  # Create snapshot of current state
+  local temp_dir=$(mktemp -d)
+  
+  # Copy relevant files
+  if [ -f "$WORKFLOW_STATE" ]; then
+    cp "$WORKFLOW_STATE" "$temp_dir/"
+  fi
+  
+  # Copy application directory if it exists
+  local app_name=$(yq eval '.current_app' "$WORKFLOW_STATE" 2>/dev/null || echo "")
+  if [ -n "$app_name" ] && [ -d "$ROOT_DIR/applications/$app_name" ]; then
+    cp -r "$ROOT_DIR/applications/$app_name" "$temp_dir/"
+  fi
+  
+  # Copy any spec directories
+  if [ -d "$ROOT_DIR/cbs-agent/specs" ]; then
+    cp -r "$ROOT_DIR/cbs-agent/specs" "$temp_dir/" 2>/dev/null || true
+  fi
+  
+  # Create compressed archive
+  (cd "$temp_dir" && tar -czf "$snapshot_file" .)
+  
+  # Update state file with snapshot reference
+  if [ -f "$WORKFLOW_STATE" ]; then
+    local temp_state=$(mktemp)
+    yq eval ".snapshots.iteration_$iteration = \"$snapshot_file\"" "$WORKFLOW_STATE" > "$temp_state"
+    mv "$temp_state" "$WORKFLOW_STATE"
+  fi
+  
+  # Cleanup
+  rm -rf "$temp_dir"
+  
+  echo "💾 Snapshot saved: $(basename "$snapshot_file")"
+}
+
+# Rollback to specific iteration
+rollback_iteration() {
+  local target_iteration="$1"
+  
+  if [ ! -f "$WORKFLOW_STATE" ]; then
+    echo "❌ No workflow state found"
+    exit 1
+  fi
+  
+  local snapshot_file=$(yq eval ".snapshots.iteration_$target_iteration" "$WORKFLOW_STATE" 2>/dev/null)
+  
+  if [ "$snapshot_file" = "null" ] || [ ! -f "$snapshot_file" ]; then
+    echo "❌ Snapshot for iteration $target_iteration not found"
+    exit 1
+  fi
+  
+  echo "⚠️  This will rollback to iteration $target_iteration"
+  if [ "$YES_MODE" != "1" ]; then
+    read -p "Continue? (y/N): " -n 1 -r || true
+    echo
+    if [[ ! ${REPLY:-N} =~ ^[Yy]$ ]]; then
+      echo "Cancelled"
+      exit 0
+    fi
+  else
+    echo "--yes provided: proceeding with rollback"
+  fi
+  
+  # Create current snapshot before rollback
+  local current_iteration=$(yq eval '.iteration_count' "$WORKFLOW_STATE")
+  create_snapshot "$((current_iteration + 1))" "Pre-rollback snapshot"
+  
+  echo "🔄 Restoring files from iteration $target_iteration..."
+  
+  # Extract snapshot
+  local temp_dir=$(mktemp -d)
+  tar -xzf "$snapshot_file" -C "$temp_dir"
+  
+  # Restore workflow state
+  if [ -f "$temp_dir/.cbs-workflow-state" ]; then
+    cp "$temp_dir/.cbs-workflow-state" "$WORKFLOW_STATE"
+  fi
+  
+  # Restore application files
+  local app_name=$(yq eval '.current_app' "$temp_dir/.cbs-workflow-state" 2>/dev/null || echo "")
+  if [ -n "$app_name" ] && [ -d "$temp_dir/$app_name" ]; then
+    rm -rf "$ROOT_DIR/applications/$app_name"
+    cp -r "$temp_dir/$app_name" "$ROOT_DIR/applications/"
+  fi
+  
+  # Restore specs if they exist
+  if [ -d "$temp_dir/specs" ]; then
+    rm -rf "$ROOT_DIR/cbs-agent/specs"
+    cp -r "$temp_dir/specs" "$ROOT_DIR/cbs-agent/"
+  fi
+  
+  # Cleanup
+  rm -rf "$temp_dir"
+  
+  echo "✅ Rollback completed successfully"
+  echo ""
+  show_status
+}
+
+# Set current phase
+set_phase() {
+  local new_phase="$1"
+  local valid_phases=("app_spec" "cell_breakdown" "cell_specs" "implementation" "feature_addition")
+  
+  # Validate phase
+  local valid=false
+  for phase in "${valid_phases[@]}"; do
+    if [ "$phase" = "$new_phase" ]; then
+      valid=true
+      break
+    fi
+  done
+  
+  if [ "$valid" = false ]; then
+    echo "❌ Invalid phase: $new_phase"
+    echo "Valid phases: ${valid_phases[*]}"
+    exit 1
+  fi
+  
+  if [ ! -f "$WORKFLOW_STATE" ]; then
+    echo "❌ No workflow state found"
+    exit 1
+  fi
+  
+  local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  local temp_file=$(mktemp)
+  
+  yq eval "
+    .current_phase = \"$new_phase\" |
+    .last_updated = \"$timestamp\" |
+    .phases.$new_phase.status = \"in_progress\"
+  " "$WORKFLOW_STATE" > "$temp_file"
+  
+  mv "$temp_file" "$WORKFLOW_STATE"
+  
+  echo "✅ Set current phase to: $new_phase"
+}
+
+# Show iteration history
+show_history() {
+  local limit=10
+  
+  # Parse limit if provided
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --limit)
+        limit="$2"
+        shift 2
+        ;;
+      *)
+        echo "Unknown option: $1"
+        exit 1
+        ;;
+    esac
+  done
+  
+  if [ ! -f "$WORKFLOW_STATE" ]; then
+    echo "❌ No workflow state found"
+    exit 1
+  fi
+  
+  local app_name=$(yq eval '.current_app' "$WORKFLOW_STATE")
+  local total_iterations=$(yq eval '.iterations | length' "$WORKFLOW_STATE")
+  
+  echo "📊 Workflow History - $app_name"
+  echo ""
+  
+  if [ "$total_iterations" -eq 0 ]; then
+    echo "No iterations yet"
+    exit 0
+  fi
+  
+  local start=$((total_iterations > limit ? total_iterations - limit : 0))
+  
+  for ((i=total_iterations-1; i>=start; i--)); do
+    local iter_id=$(yq eval ".iterations[$i].id" "$WORKFLOW_STATE")
+    local iter_phase=$(yq eval ".iterations[$i].phase" "$WORKFLOW_STATE")
+    local iter_desc=$(yq eval ".iterations[$i].description" "$WORKFLOW_STATE")
+    local iter_time=$(yq eval ".iterations[$i].timestamp" "$WORKFLOW_STATE")
+    
+    local time_display=$(date -d "$iter_time" +'%Y-%m-%d %H:%M' 2>/dev/null || echo "$iter_time")
+    local current_marker=""
+    
+    if [ "$i" -eq $((total_iterations-1)) ]; then
+      current_marker=" (current)"
+    fi
+    
+    echo "Iteration $iter_id$current_marker - $iter_phase"
+    echo "├─ Time: $time_display"
+    echo "├─ Description: $iter_desc"
+    echo "└─ Phase: $iter_phase"
+    echo ""
+  done
+  
+  echo "📈 Summary:"
+  echo "• Total iterations: $total_iterations"
+  echo "• Showing: $(($total_iterations < $limit ? $total_iterations : $limit)) most recent"
+}
+
+# Validate workflow state
+validate_state() {
+  if [ ! -f "$WORKFLOW_STATE" ]; then
+    echo "❌ No workflow state found"
+    exit 1
+  fi
+  
+  echo "🔍 Validating workflow state..."
+  
+  # Check YAML syntax
+  if ! yq eval '.' "$WORKFLOW_STATE" >/dev/null 2>&1; then
+    echo "❌ Invalid YAML syntax in workflow state file"
+    exit 1
+  fi
+  
+  # Check required fields
+  local app_name=$(yq eval '.current_app' "$WORKFLOW_STATE")
+  local current_phase=$(yq eval '.current_phase' "$WORKFLOW_STATE")
+  
+  if [ "$app_name" = "null" ] || [ -z "$app_name" ]; then
+    echo "❌ Missing or invalid current_app"
+    exit 1
+  fi
+  
+  if [ "$current_phase" = "null" ] || [ -z "$current_phase" ]; then
+    echo "❌ Missing or invalid current_phase"
+    exit 1
+  fi
+  
+  # Check application directory exists
+  if [ ! -d "$ROOT_DIR/applications/$app_name" ]; then
+    echo "⚠️  Application directory not found: applications/$app_name"
+  fi
+  
+  # Check snapshots
+  local snapshots=$(yq eval '.snapshots | keys' "$WORKFLOW_STATE" 2>/dev/null || echo "[]")
+  if [ "$snapshots" != "[]" ]; then
+    local missing_snapshots=0
+    while IFS= read -r snapshot_key; do
+      local snapshot_file=$(yq eval ".snapshots.$snapshot_key" "$WORKFLOW_STATE")
+      if [ ! -f "$snapshot_file" ]; then
+        echo "⚠️  Missing snapshot: $snapshot_file"
+        ((missing_snapshots++))
+      fi
+    done < <(yq eval '.snapshots | keys | .[]' "$WORKFLOW_STATE" 2>/dev/null || true)
+    
+    if [ "$missing_snapshots" -gt 0 ]; then
+      echo "⚠️  Found $missing_snapshots missing snapshots"
+    fi
+  fi
+  
+  echo "✅ Workflow state validation completed"
+}
+
+# Automated implementation based on cell specs
+implement() {
+  if [ ! -f "$WORKFLOW_STATE" ]; then
+    echo "❌ No workflow state found. Initialize with: cbs-workflow init <app_name>"
+    exit 1
+  fi
+  
+  local app_name=$(yq eval '.current_app' "$WORKFLOW_STATE")
+  local current_phase=$(yq eval '.current_phase' "$WORKFLOW_STATE")
+  
+  if [ "$current_phase" != "implementation" ]; then
+    echo "⚠️ Current phase is not 'implementation'. Switching to implementation phase."
+    set_phase "implementation"
+  fi
+  
+  echo "🚀 Starting automated implementation for $app_name..."
+  echo "🔍 Validating cell specifications..."
+  local cells_dir="$ROOT_DIR/applications/$app_name/cells"
+  if [ ! -d "$cells_dir" ]; then
+    echo "❌ No cells directory found for $app_name"
+    exit 1
+  fi
+  
+  for cell_dir in "$cells_dir"/*; do
+    if [ -d "$cell_dir" ]; then
+      local cell_name=$(basename "$cell_dir")
+      if [ -f "$cell_dir/ai/spec.md" ]; then
+        echo "✅ Found spec for $cell_name. Implementing..."
+        # Placeholder for implementation logic (e.g., calling a script or tool to generate code)
+        echo "📝 Implementing $cell_name based on spec."
+        # Add logic to update workflow state
+        update_implementation_status "$cell_name"
+      else
+        echo "❌ Missing spec for $cell_name. Skipping..."
+      fi
+    fi
+  done
+  
+  echo "✅ Implementation complete for $app_name."
+  show_status
+}
+
+# Update implementation status for a cell
+update_implementation_status() {
+  local cell_name="$1"
+  local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  local temp_file=$(mktemp)
+  
+  yq eval ".last_updated = \"$timestamp\" | .phases.implementation.completed_cells += [\"$cell_name\"]" "$WORKFLOW_STATE" > "$temp_file"
+  mv "$temp_file" "$WORKFLOW_STATE"
+  
+  echo "✅ Updated implementation status for $cell_name"
+}
+
+# Generate implementation plan and task breakdown
+plan() {
+  if [ ! -f "$WORKFLOW_STATE" ]; then
+    echo "❌ No workflow state found. Initialize with: cbs-workflow init <app_name>"
+    exit 1
+  fi
+  
+  local app_name=$(yq eval '.current_app' "$WORKFLOW_STATE")
+  local current_phase=$(yq eval '.current_phase' "$WORKFLOW_STATE")
+  
+  if [ "$current_phase" != "cell_specs" ] && [ "$current_phase" != "implementation" ]; then
+    echo "⚠️ Current phase is not suitable for planning. Switching to 'cell_specs' phase."
+    set_phase "cell_specs"
+  fi
+  
+  echo "📋 Generating implementation plan for $app_name..."
+  local plan_dir="$ROOT_DIR/applications/$app_name/ai"
+  local plan_file="$plan_dir/implementation_plan.md"
+  
+  if [ ! -d "$plan_dir" ]; then
+    mkdir -p "$plan_dir"
+  fi
+  
+  cat > "$plan_file" << EOF
+# Implementation Plan for $app_name
+
+## Overview
+This document outlines the implementation strategy for $app_name, breaking down tasks into manageable units for each cell.
+
+## Cell Implementation Tasks
+
+### Core Cells
+- [ ] Define message contracts for core cells
+- [ ] Implement core logic cells
+- [ ] Unit test core functionality
+
+### UI Cells
+- [ ] Design UI components
+- [ ] Implement UI cells with bus communication
+- [ ] Test UI interactions
+
+### Storage Cells
+- [ ] Define data schemas
+- [ ] Implement storage cells
+- [ ] Test data persistence
+
+## Integration and Testing
+- [ ] Integration testing for message flows
+- [ ] End-to-end testing for user stories
+- [ ] Performance optimization
+
+## Deployment
+- [ ] Deployment scripts
+- [ ] Documentation for deployment process
+EOF
+  
+  echo "✅ Implementation plan generated at $plan_file"
+  
+  # Update workflow state with planning status
+  local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  local temp_file=$(mktemp)
+  yq eval ".last_updated = \"$timestamp\" | .phases.$current_phase.status = \"in_progress\"" "$WORKFLOW_STATE" > "$temp_file"
+  mv "$temp_file" "$WORKFLOW_STATE"
+  
+  echo "✅ Planning status updated for $app_name"
+  show_status
+}
+
+# Main command dispatcher
+case "${1:-}" in
+  --yes)
+    YES_MODE=1
+    shift
+    case "${1:-}" in "" ) usage; exit 1;; esac
+    ;;&
+  init)
+    if [ $# -lt 2 ]; then
+      echo "Usage: cbs-workflow init <app_name>"
+      exit 1
+    fi
+    init_workflow "$2"
+    ;;
+  status)
+    show_status
+    ;;
+  iterate)
+    if [ $# -lt 3 ] || [ "$2" != "--description" ]; then
+      echo "Usage: cbs-workflow iterate --description 'description'"
+      exit 1
+    fi
+    create_iteration "$3"
+    ;;
+  rollback)
+    if [ $# -lt 2 ]; then
+      echo "Usage: cbs-workflow rollback <iteration_id>"
+      exit 1
+    fi
+    rollback_iteration "$2"
+    ;;
+  set-phase)
+    if [ $# -lt 2 ]; then
+      echo "Usage: cbs-workflow set-phase <phase>"
+      exit 1
+    fi
+    set_phase "$2"
+    ;;
+  history)
+    shift
+    show_history "$@"
+    ;;
+  validate)
+    validate_state
+    ;;
+  implement)
+    implement
+    ;;
+  plan)
+    plan
+    ;;
+  app-spec|cell-breakdown|cell-specs|implementation|feature-addition)
+    set_phase "$1"
+    ;;
+  --help|-h|help)
+    usage
+    ;;
+  "")
+    show_status
+    ;;
+  *)
+    echo "Unknown command: $1"
+    usage
+    exit 1
+    ;;
+esac

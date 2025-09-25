@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flow_ui_cell/flow_ui_cell.dart';
-import 'dart:html' as html;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'widgets/main_app_widget.dart';
+import 'mock_bus.dart';
+import 'package:web/web.dart' as web;
 
 /// App entrypoint.
 /// On web, we mark the HTML body with `flutter-loaded` after the first frame
@@ -10,9 +11,15 @@ void main() {
   runApp(const FlowApp());
   if (kIsWeb) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      html.document.body?.classes.add('flutter-loaded');
+      // Web-specific code moved to conditional import
+      _addFlutterLoadedClass();
     });
   }
+}
+
+void _addFlutterLoadedClass() {
+  // Add flutter-loaded class to body to hide loading spinner
+  web.document.body?.className = '${web.document.body?.className ?? ''} flutter-loaded'.trim();
 }
 
 /// Main application entry point
@@ -34,7 +41,7 @@ class FlowApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const FlowUIWidget(),
+      home: MainAppWidget(bus: MockBodyBus()),
       debugShowCheckedModeBanner: false,
     );
   }

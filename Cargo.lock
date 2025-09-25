@@ -215,10 +215,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "body_core",
- "greeter_rs",
- "io_print_greeting_rs",
- "io_prompt_name_rs",
- "logic_greet_rs",
  "serde_json",
  "serde_yaml",
  "tempfile",
@@ -614,15 +610,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
-name = "greeter_rs"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "body_core",
- "serde_json",
-]
-
-[[package]]
 name = "h2"
 version = "0.3.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -948,27 +935,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "io_print_greeting_rs"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "body_core",
- "chrono",
- "serde_json",
-]
-
-[[package]]
-name = "io_prompt_name_rs"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "body_core",
- "chrono",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1038,16 +1004,6 @@ name = "log"
 version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
-
-[[package]]
-name = "logic_greet_rs"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "body_core",
- "chrono",
- "serde_json",
-]
 
 [[package]]
 name = "matchit"

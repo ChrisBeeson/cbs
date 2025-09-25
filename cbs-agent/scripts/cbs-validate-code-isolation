@@ -1,0 +1,256 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Code Isolation Validator - Enforces cell isolation at the code level for Rust and Dart
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "Usage: cbs-validate-code-isolation [--app <app_name>|--all]"
+  echo "Validates that cells do not directly communicate or import each other, enforcing bus-only communication."
+  echo
+  echo "Options:"
+  echo "  --app <name>    Validate specific application"
+  echo "  --all          Validate all applications (default)"
+  echo
+  echo "Checks:"
+  echo "  - No direct imports between cells in Rust code"
+  echo "  - No direct imports between cells in Dart code"
+  echo "  - No direct method calls between cells"
+}
+
+validate_rust_code() {
+  local app_path="$1"
+  local app_name="$(basename "$app_path")"
+  local cells_dir="$app_path/cells"
+  echo "🔍 Validating Rust code isolation for: $app_name"
+  local errors=0
+  local cell_dirs=()
+  
+  if [[ ! -d "$cells_dir" ]]; then
+    echo "  ⚠️  No cells directory found"
+    return 0
+  fi
+  
+  # Find all Rust cell directories
+  while IFS= read -r -d '' cell_dir; do
+    if [[ -d "$cell_dir" && -f "$cell_dir/Cargo.toml" ]]; then
+      cell_dirs+=("$cell_dir")
+    fi
+  done < <(find "$cells_dir" -type d -name "lib" -exec dirname {} \; -print0)
+  
+  if [[ ${#cell_dirs[@]} -eq 0 ]]; then
+    echo "  ⚠️  No Rust cells found"
+    return 0
+  fi
+  
+  echo "  📊 Found ${#cell_dirs[@]} Rust cells"
+  
+  # Check for direct dependencies in Cargo.toml
+  for cell_dir in "${cell_dirs[@]}"; do
+    local cell_name="$(basename "$cell_dir")"
+    local cargo_toml="$cell_dir/Cargo.toml"
+    if [[ -f "$cargo_toml" ]]; then
+      while IFS= read -r line; do
+        if [[ "$line" =~ ^[[:space:]]*"[^"]+"[[:space:]]*=[[:space:]]*"[^"]+" ]]; then
+          for other_cell_dir in "${cell_dirs[@]}"; do
+            if [[ "$other_cell_dir" != "$cell_dir" ]]; then
+              local other_cell_name="$(basename "$other_cell_dir")"
+              if [[ "$line" =~ "$other_cell_name" ]]; then
+                echo "  ❌ Direct dependency found in $cell_name to $other_cell_name in Cargo.toml"
+                ((errors++))
+              fi
+            fi
+          done
+        fi
+      done < "$cargo_toml"
+    fi
+    
+    # Check for direct imports in Rust source files
+    local src_dir="$cell_dir/src"
+    if [[ -d "$src_dir" ]]; then
+      while IFS= read -r -d '' rs_file; do
+        while IFS= read -r line; do
+          if [[ "$line" =~ ^[[:space:]]*use[[:space:]]+[^;]+; ]]; then
+            for other_cell_dir in "${cell_dirs[@]}"; do
+              if [[ "$other_cell_dir" != "$cell_dir" ]]; then
+                local other_cell_name="$(basename "$other_cell_dir")"
+                if [[ "$line" =~ "$other_cell_name" ]]; then
+                  echo "  ❌ Direct import found in $cell_name to $other_cell_name in $rs_file"
+                  ((errors++))
+                fi
+              fi
+            done
+          fi
+        done < "$rs_file"
+      done < <(find "$src_dir" -type f -name "*.rs" -print0)
+    fi
+  done
+  
+  if [[ $errors -eq 0 ]]; then
+    echo "  ✅ Rust code isolation validation passed"
+  else
+    echo "  ❌ Rust code isolation validation failed with $errors errors"
+    return 1
+  fi
+  return 0
+}
+
+validate_dart_code() {
+  local app_path="$1"
+  local app_name="$(basename "$app_path")"
+  local cells_dir="$app_path/cells"
+  echo "🔍 Validating Dart code isolation for: $app_name"
+  local errors=0
+  local cell_dirs=()
+  
+  if [[ ! -d "$cells_dir" ]]; then
+    echo "  ⚠️  No cells directory found"
+    return 0
+  fi
+  
+  # Find all Dart cell directories
+  while IFS= read -r -d '' cell_dir; do
+    if [[ -d "$cell_dir" && -f "$cell_dir/pubspec.yaml" ]]; then
+      cell_dirs+=("$cell_dir")
+    fi
+  done < <(find "$cells_dir" -type d -name "lib" -exec dirname {} \; -print0)
+  
+  if [[ ${#cell_dirs[@]} -eq 0 ]]; then
+    echo "  ⚠️  No Dart cells found"
+    return 0
+  fi
+  
+  echo "  📊 Found ${#cell_dirs[@]} Dart cells"
+  
+  # Check for direct dependencies in pubspec.yaml
+  for cell_dir in "${cell_dirs[@]}"; do
+    local cell_name="$(basename "$cell_dir")"
+    local pubspec_yaml="$cell_dir/pubspec.yaml"
+    if [[ -f "$pubspec_yaml" ]]; then
+      while IFS= read -r line; do
+        if [[ "$line" =~ ^[[:space:]]*[^[:space:]]+:[[:space:]]*path:.* ]]; then
+          for other_cell_dir in "${cell_dirs[@]}"; do
+            if [[ "$other_cell_dir" != "$cell_dir" ]]; then
+              local other_cell_name="$(basename "$other_cell_dir")"
+              if [[ "$line" =~ "$other_cell_name" ]]; then
+                echo "  ❌ Direct dependency found in $cell_name to $other_cell_name in pubspec.yaml"
+                ((errors++))
+              fi
+            fi
+          done
+        fi
+      done < "$pubspec_yaml"
+    fi
+    
+    # Check for direct imports in Dart source files
+    local lib_dir="$cell_dir/lib"
+    if [[ -d "$lib_dir" ]]; then
+      while IFS= read -r -d '' dart_file; do
+        while IFS= read -r line; do
+          if [[ "$line" =~ ^[[:space:]]*import[[:space:]]+[",']package:.*[",']; ]]; then
+            for other_cell_dir in "${cell_dirs[@]}"; do
+              if [[ "$other_cell_dir" != "$cell_dir" ]]; then
+                local other_cell_name="$(basename "$other_cell_dir")"
+                if [[ "$line" =~ "$other_cell_name" ]]; then
+                  echo "  ❌ Direct import found in $cell_name to $other_cell_name in $dart_file"
+                  ((errors++))
+                fi
+              fi
+            done
+          fi
+        done < "$dart_file"
+      done < <(find "$lib_dir" -type f -name "*.dart" -print0)
+    fi
+  done
+  
+  if [[ $errors -eq 0 ]]; then
+    echo "  ✅ Dart code isolation validation passed"
+  else
+    echo "  ❌ Dart code isolation validation failed with $errors errors"
+    return 1
+  fi
+  return 0
+}
+
+# Parse arguments
+APP_NAME=""
+VALIDATE_ALL=true
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --app)
+      APP_NAME="$2"
+      VALIDATE_ALL=false
+      shift 2
+      ;;
+    --all)
+      VALIDATE_ALL=true
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+echo "🔒 CBS Code Isolation Validation"
+echo "================================"
+
+failed_apps=0
+
+if [[ "$VALIDATE_ALL" == true ]]; then
+  # Validate all applications
+  for base_dir in "$ROOT_DIR/applications" "$ROOT_DIR/examples/applications"; do
+    if [[ ! -d "$base_dir" ]]; then
+      continue
+    fi
+    
+    for app_path in "$base_dir"/*; do
+      if [[ -d "$app_path" ]]; then
+        if ! validate_rust_code "$app_path"; then
+          ((failed_apps++))
+        fi
+        if ! validate_dart_code "$app_path"; then
+          ((failed_apps++))
+        fi
+        echo
+      fi
+    done
+  done
+else
+  # Validate specific application
+  app_found=false
+  for base_dir in "$ROOT_DIR/applications" "$ROOT_DIR/examples/applications"; do
+    app_path="$base_dir/$APP_NAME"
+    if [[ -d "$app_path" ]]; then
+      app_found=true
+      if ! validate_rust_code "$app_path"; then
+        ((failed_apps++))
+      fi
+      if ! validate_dart_code "$app_path"; then
+        ((failed_apps++))
+      fi
+      break
+    fi
+  done
+  
+  if [[ "$app_found" == false ]]; then
+    echo "❌ Application not found: $APP_NAME"
+    exit 1
+  fi
+fi
+
+echo "🏁 Code isolation validation complete"
+if [[ $failed_apps -eq 0 ]]; then
+  echo "✅ All applications passed code isolation validation"
+  exit 0
+else
+  echo "❌ $failed_apps applications failed code isolation validation"
+  exit 1
+fi

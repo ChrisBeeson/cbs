@@ -1,0 +1,73 @@
+name: flutter_flow_web
+version: 1.0.0
+description: Flow UI with Bus Monitor and Navigation
+cells:
+  # Navigation System
+  - name: navigation_manager
+    path: cells/navigation_manager
+    dependencies: []
+  - name: navbar_ui
+    path: cells/navbar_ui
+    dependencies: [navigation_manager]
+  
+  # Screen Components
+  - name: screen_home
+    path: cells/screen_home
+    dependencies: [navigation_manager, flow_text]
+  - name: screen_monitor
+    path: cells/screen_monitor
+    dependencies: [navigation_manager, bus_monitor]
+  
+  # Legacy/Core Cells
+  - name: flow_ui
+    path: cells/flow_ui
+    dependencies: [bus_monitor, flow_text]
+  - name: bus_monitor
+    path: cells/bus_monitor
+    dependencies: []
+  - name: flow_text
+    path: cells/flow_text
+    dependencies: []
+
+shared_cells: [cbs_sdk]
+
+flows:
+  # Navigation Flows
+  - name: screen_switch
+    steps:
+      - cell: navbar_ui
+        action: user_click
+      - cell: navigation_manager
+        action: set_screen
+      - cell: navigation_manager
+        action: notify_change
+  
+  - name: home_screen_load
+    steps:
+      - cell: navigation_manager
+        action: activate_screen
+      - cell: screen_home
+        action: load_content
+      - cell: flow_text
+        action: provide_content
+  
+  - name: monitor_screen_load
+    steps:
+      - cell: navigation_manager
+        action: activate_screen
+      - cell: screen_monitor
+        action: load_messages
+      - cell: bus_monitor
+        action: provide_messages
+  
+  # Legacy Flows
+  - name: ui_render
+    steps:
+      - cell: flow_ui
+        action: render
+  - name: user_toggle
+    steps:
+      - cell: flow_ui
+        action: toggle
+
+

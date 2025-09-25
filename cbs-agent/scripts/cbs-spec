@@ -1,0 +1,565 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Spec-Kit Integration - Specification-driven cell development
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+TEMPLATES_DIR="$ROOT_DIR/cbs-agent/templates"
+SPECS_DIR="$ROOT_DIR/specs"
+
+usage() {
+  echo "CBS Spec-Kit Integration - Specification-driven Development"
+  echo
+  echo "Usage: cbs /spec <cell_id> [options]"
+  echo "       cbs /plan <cell_id> [options]"
+  echo "       cbs /tasks <cell_id> [options]"
+  echo "       cbs /implement <cell_id> [options]"
+  echo
+  echo "Spec Commands:"
+  echo "  /spec <cell_id>                    Create detailed cell specification"
+  echo "    --app <app_name>                 Target application"
+  echo "    --category <ui|logic|storage|integration|io>"
+  echo "    --language <dart|rust|python|go|ts>"
+  echo "    --template <template_name>       Use specific template"
+  echo
+  echo "  /plan <cell_id>                    Generate implementation plan"
+  echo "    --validate                       Validate plan against spec"
+  echo "    --phases <1|2|3>                 Number of implementation phases"
+  echo "    --timeline <days>                Target completion timeline"
+  echo
+  echo "  /tasks <cell_id>                   Generate task breakdown"
+  echo "    --format <markdown|json|yaml>    Output format"
+  echo "    --parallel                       Identify parallel tasks"
+  echo "    --dependencies                   Include dependency analysis"
+  echo
+  echo "  /implement <cell_id>               Execute implementation plan"
+  echo "    --phase <foundation|business|quality>"
+  echo "    --dry-run                        Show what would be done"
+  echo "    --continue                       Continue from last checkpoint"
+  echo
+  echo "Validation Commands:"
+  echo "  /validate-spec <cell_id>           Validate specification completeness"
+  echo "  /check-prerequisites <cell_id>     Check implementation prerequisites"
+  echo "  /progress <cell_id>                Show implementation progress"
+  echo
+  echo "Examples:"
+  echo "  cbs /spec user_auth --app my_app --category logic --language dart"
+  echo "  cbs /plan user_auth --validate --timeline 14"
+  echo "  cbs /implement user_auth --phase foundation"
+}
+
+# Get current app context
+get_current_app() {
+  if [ ! -f "$ROOT_DIR/.cbs-workflow-state" ]; then
+    echo "❌ No workflow state found. Initialize with: cbs app-create <app_name>"
+    exit 1
+  fi
+  
+  yq eval '.current_app' "$ROOT_DIR/.cbs-workflow-state"
+}
+
+# Create cell specification
+create_spec() {
+  local cell_id="$1"
+  local app_name="${2:-$(get_current_app)}"
+  local category="${3:-logic}"
+  local language="${4:-dart}"
+  local template="${5:-cell-spec-template.md}"
+  
+  echo "🔍 Creating specification for cell: $cell_id"
+  
+  # Create specs directory if it doesn't exist
+  local spec_dir="$SPECS_DIR/$(date +%Y-%m-%d)-$cell_id"
+  mkdir -p "$spec_dir"
+  
+  # Generate cell name from ID
+  local cell_name=$(echo "$cell_id" | sed 's/_/ /g' | sed 's/\b\w/\U&/g')
+  local cell_class_name=$(echo "$cell_id" | sed 's/_//g' | sed 's/\b\w/\U&/g')
+  
+  # Copy and customize template
+  local spec_file="$spec_dir/spec.md"
+  cp "$TEMPLATES_DIR/$template" "$spec_file"
+  
+  # Replace template variables
+  sed -i.bak \
+    -e "s/{{CELL_NAME}}/$cell_name/g" \
+    -e "s/{{CELL_ID}}/$cell_id/g" \
+    -e "s/{{CATEGORY}}/$category/g" \
+    -e "s/{{LANGUAGE}}/$language/g" \
+    -e "s/{{APP}}/$app_name/g" \
+    -e "s/{{CELL_CLASS_NAME}}/$cell_class_name/g" \
+    "$spec_file"
+  
+  rm "$spec_file.bak"
+  
+  echo "✅ Specification created: $spec_file"
+  echo "📝 Next steps:"
+  echo "   1. Edit the specification to match your requirements"
+  echo "   2. Run: cbs /validate-spec $cell_id"
+  echo "   3. Run: cbs /plan $cell_id"
+}
+
+# Generate implementation plan
+create_plan() {
+  local cell_id="$1"
+  local validate="${2:-false}"
+  local phases="${3:-3}"
+  local timeline="${4:-7}"
+  
+  local spec_dir="$SPECS_DIR/$(ls $SPECS_DIR | grep $cell_id | head -n1)"
+  
+  if [ ! -d "$spec_dir" ]; then
+    echo "❌ No specification found for $cell_id. Run: cbs /spec $cell_id"
+    exit 1
+  fi
+  
+  echo "📋 Generating implementation plan for: $cell_id"
+  
+  # Calculate phase durations (integers)
+  local phase1_days=$((timeline / 3))
+  local phase2_days=$((timeline / 2))
+  local phase3_days=$((timeline - phase1_days - phase2_days))
+  
+  # Copy and customize plan template
+  local plan_file="$spec_dir/plan.md"
+  cp "$TEMPLATES_DIR/cell-plan-template.md" "$plan_file"
+  
+  # Get app context
+  local app_name=$(get_current_app)
+  local cell_name=$(echo "$cell_id" | sed 's/_/ /g' | sed 's/\b\w/\U&/g')
+  
+  # Compute dates cross-platform using Python
+  local start_date end_date
+  start_date=$(python3 - <<'PY'
+import datetime
+print(datetime.date.today().strftime('%Y-%m-%d'))
+PY
+)
+  end_date=$(python3 - "$timeline" <<'PY'
+import sys, datetime
+days=int(sys.argv[1])
+print((datetime.date.today()+datetime.timedelta(days=days)).strftime('%Y-%m-%d'))
+PY
+)
+
+  # Replace template variables
+  sed -i.bak \
+    -e "s/{{CELL_NAME}}/$cell_name/g" \
+    -e "s/{{CELL_ID}}/$cell_id/g" \
+    -e "s/{{APP}}/$app_name/g" \
+    -e "s/{{START_DATE}}/$start_date/g" \
+    -e "s/{{END_DATE}}/$end_date/g" \
+    -e "s/{{PHASE_1_DURATION}}/$phase1_days days/g" \
+    -e "s/{{PHASE_2_DURATION}}/$phase2_days days/g" \
+    -e "s/{{PHASE_3_DURATION}}/$phase3_days days/g" \
+    "$plan_file"
+  
+  rm "$plan_file.bak"
+  
+  if [ "$validate" = "true" ]; then
+    validate_plan "$cell_id"
+  fi
+  
+  echo "✅ Implementation plan created: $plan_file"
+  echo "📝 Next steps:"
+  echo "   1. Review and customize the plan"
+  echo "   2. Run: cbs /tasks $cell_id"
+  echo "   3. Run: cbs /implement $cell_id"
+}
+
+# Generate task breakdown
+create_tasks() {
+  local cell_id="$1"
+  local format="${2:-markdown}"
+  local include_parallel="${3:-true}"
+  local include_deps="${4:-true}"
+  
+  local spec_dir="$SPECS_DIR/$(ls $SPECS_DIR | grep $cell_id | head -n1)"
+  
+  if [ ! -d "$spec_dir" ]; then
+    echo "❌ No specification found for $cell_id. Run: cbs /spec $cell_id"
+    exit 1
+  fi
+  
+  echo "📋 Generating task breakdown for: $cell_id"
+  
+  # Copy and customize tasks template
+  local tasks_file="$spec_dir/tasks.md"
+  cp "$TEMPLATES_DIR/cell-tasks-template.md" "$tasks_file"
+  
+  # Get app context and cell info
+  local app_name=$(get_current_app)
+  local cell_name=$(echo "$cell_id" | sed 's/_/ /g' | sed 's/\b\w/\U&/g')
+  local cell_class_name=$(echo "$cell_id" | sed 's/_//g' | sed 's/\b\w/\U&/g')
+  
+  # Replace template variables
+  sed -i.bak \
+    -e "s/{{CELL_NAME}}/$cell_name/g" \
+    -e "s/{{CELL_ID}}/$cell_id/g" \
+    -e "s/{{APP}}/$app_name/g" \
+    -e "s/{{CELL_CLASS_NAME}}/$cell_class_name/g" \
+    "$tasks_file"
+  
+  rm "$tasks_file.bak"
+  
+  echo "✅ Task breakdown created: $tasks_file"
+  echo "📝 Next steps:"
+  echo "   1. Review and customize the tasks"
+  echo "   2. Run: cbs /check-prerequisites $cell_id"
+  echo "   3. Run: cbs /implement $cell_id --phase foundation"
+}
+
+# Validate specification
+validate_spec() {
+  local cell_id="$1"
+  
+  local spec_dir="$SPECS_DIR/$(ls $SPECS_DIR | grep $cell_id | head -n1)"
+  
+  if [ ! -d "$spec_dir" ]; then
+    echo "❌ No specification found for $cell_id"
+    exit 1
+  fi
+  
+  local spec_file="$spec_dir/spec.md"
+  
+  echo "🔍 Validating specification for: $cell_id"
+  
+  # Check required sections
+  local required_sections=(
+    "## Overview"
+    "## Problem Statement"
+    "## Requirements"
+    "## Interface Specification"
+    "## Data Model"
+    "## Business Logic"
+    "## Testing Strategy"
+    "## Success Criteria"
+  )
+  
+  local missing_sections=()
+  for section in "${required_sections[@]}"; do
+    if ! grep -q "^$section" "$spec_file"; then
+      missing_sections+=("$section")
+    fi
+  done
+  
+  if [ ${#missing_sections[@]} -eq 0 ]; then
+    echo "✅ Specification validation passed"
+    
+    # Additional validations
+    echo "🔍 Running additional checks..."
+    
+    # Check for placeholder text
+    if grep -q "{{" "$spec_file"; then
+      echo "⚠️  Warning: Specification contains placeholder text"
+      grep -n "{{" "$spec_file" | head -5
+    fi
+    
+    # Check for empty requirements
+    if grep -q "FR-1.*\[\]" "$spec_file"; then
+      echo "⚠️  Warning: Some functional requirements are empty"
+    fi
+    
+    echo "✅ Specification is ready for planning"
+    return 0
+  else
+    echo "❌ Specification validation failed"
+    echo "Missing required sections:"
+    for section in "${missing_sections[@]}"; do
+      echo "  - $section"
+    done
+    exit 1
+  fi
+}
+
+# Check implementation prerequisites
+check_prerequisites() {
+  local cell_id="$1"
+  
+  local spec_dir="$SPECS_DIR/$(ls $SPECS_DIR | grep $cell_id | head -n1)"
+  
+  if [ ! -d "$spec_dir" ]; then
+    echo "❌ No specification found for $cell_id"
+    exit 1
+  fi
+  
+  echo "🔍 Checking prerequisites for: $cell_id"
+  
+  local all_good=true
+  
+  # Check specification exists and is valid
+  if [ -f "$spec_dir/spec.md" ]; then
+    echo "✅ Specification exists"
+    validate_spec "$cell_id" > /dev/null 2>&1 && echo "✅ Specification is valid" || { echo "❌ Specification is invalid"; all_good=false; }
+  else
+    echo "❌ Specification missing"
+    all_good=false
+  fi
+  
+  # Check plan exists
+  if [ -f "$spec_dir/plan.md" ]; then
+    echo "✅ Implementation plan exists"
+  else
+    echo "❌ Implementation plan missing"
+    all_good=false
+  fi
+  
+  # Check tasks exist
+  if [ -f "$spec_dir/tasks.md" ]; then
+    echo "✅ Task breakdown exists"
+  else
+    echo "❌ Task breakdown missing"
+    all_good=false
+  fi
+  
+  # Check development environment
+  local app_name=$(get_current_app)
+  local cell_dir="$ROOT_DIR/applications/$app_name/cells/$cell_id"
+  
+  if [ -d "$cell_dir" ]; then
+    echo "✅ Cell directory exists"
+    
+    if [ -f "$cell_dir/pubspec.yaml" ]; then
+      echo "✅ pubspec.yaml exists"
+    else
+      echo "❌ pubspec.yaml missing"
+      all_good=false
+    fi
+  else
+    echo "⚠️  Cell directory doesn't exist (will be created)"
+  fi
+  
+  if [ "$all_good" = true ]; then
+    echo "✅ All prerequisites met - ready for implementation"
+    return 0
+  else
+    echo "❌ Prerequisites not met - resolve issues before implementing"
+    exit 1
+  fi
+}
+
+# Show implementation progress
+show_progress() {
+  local cell_id="$1"
+  
+  local spec_dir="$SPECS_DIR/$(ls $SPECS_DIR | grep $cell_id | head -n1)"
+  
+  if [ ! -d "$spec_dir" ]; then
+    echo "❌ No specification found for $cell_id"
+    exit 1
+  fi
+  
+  echo "📊 Implementation progress for: $cell_id"
+  echo
+  
+  # Check if tasks file exists
+  if [ ! -f "$spec_dir/tasks.md" ]; then
+    echo "❌ No task breakdown found"
+    exit 1
+  fi
+  
+  # Count total and completed tasks
+  local total_tasks=$(grep -c "^### TASK-" "$spec_dir/tasks.md" || echo "0")
+  local completed_tasks=$(grep -c "- \[x\]" "$spec_dir/tasks.md" || echo "0")
+  
+  if [ "$total_tasks" -eq 0 ]; then
+    echo "❌ No tasks found in breakdown"
+    exit 1
+  fi
+  
+  local progress_percent=$((completed_tasks * 100 / total_tasks))
+  
+  echo "Progress: $completed_tasks/$total_tasks tasks completed ($progress_percent%)"
+  echo
+  
+  # Show progress by phase
+  echo "Phase Breakdown:"
+  
+  # Foundation phase
+  local foundation_total=$(grep -A 20 "## Phase 1: Foundation Tasks" "$spec_dir/tasks.md" | grep -c "^### TASK-" || echo "0")
+  local foundation_done=$(grep -A 100 "## Phase 1: Foundation Tasks" "$spec_dir/tasks.md" | grep -B 100 "## Phase 2:" | grep -c "- \[x\]" || echo "0")
+  echo "  Foundation: $foundation_done/$foundation_total tasks"
+  
+  # Business phase
+  local business_total=$(grep -A 20 "## Phase 2: Business Logic Tasks" "$spec_dir/tasks.md" | grep -c "^### TASK-" || echo "0")
+  local business_done=$(grep -A 100 "## Phase 2: Business Logic Tasks" "$spec_dir/tasks.md" | grep -B 100 "## Phase 3:" | grep -c "- \[x\]" || echo "0")
+  echo "  Business Logic: $business_done/$business_total tasks"
+  
+  # Quality phase
+  local quality_total=$(grep -A 100 "## Phase 3: Quality & Performance Tasks" "$spec_dir/tasks.md" | grep -c "^### TASK-" || echo "0")
+  local quality_done=$(grep -A 100 "## Phase 3: Quality & Performance Tasks" "$spec_dir/tasks.md" | grep -c "- \[x\]" || echo "0")
+  echo "  Quality & Performance: $quality_done/$quality_total tasks"
+  
+  # Show next tasks
+  echo
+  echo "Next Tasks:"
+  grep -A 5 "- \[ \]" "$spec_dir/tasks.md" | head -10
+}
+
+# Main command dispatcher
+main() {
+  if [[ $# -eq 0 ]]; then
+    usage
+    exit 1
+  fi
+  
+  local command="$1"
+  shift
+  
+  case "$command" in
+    /spec)
+      if [[ $# -lt 1 ]]; then
+        echo "❌ Cell ID required"
+        usage
+        exit 1
+      fi
+      
+      local cell_id="$1"
+      local app_name=""
+      local category="logic"
+      local language="dart"
+      local template="cell-spec-template.md"
+      
+      shift
+      while [[ $# -gt 0 ]]; do
+        case $1 in
+          --app)
+            app_name="$2"
+            shift 2
+            ;;
+          --category)
+            category="$2"
+            shift 2
+            ;;
+          --language)
+            language="$2"
+            shift 2
+            ;;
+          --template)
+            template="$2"
+            shift 2
+            ;;
+          *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+        esac
+      done
+      
+      create_spec "$cell_id" "$app_name" "$category" "$language" "$template"
+      ;;
+      
+    /plan)
+      if [[ $# -lt 1 ]]; then
+        echo "❌ Cell ID required"
+        usage
+        exit 1
+      fi
+      
+      local cell_id="$1"
+      local validate="false"
+      local phases="3"
+      local timeline="7"
+      
+      shift
+      while [[ $# -gt 0 ]]; do
+        case $1 in
+          --validate)
+            validate="true"
+            shift
+            ;;
+          --phases)
+            phases="$2"
+            shift 2
+            ;;
+          --timeline)
+            timeline="$2"
+            shift 2
+            ;;
+          *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+        esac
+      done
+      
+      create_plan "$cell_id" "$validate" "$phases" "$timeline"
+      ;;
+      
+    /tasks)
+      if [[ $# -lt 1 ]]; then
+        echo "❌ Cell ID required"
+        usage
+        exit 1
+      fi
+      
+      local cell_id="$1"
+      local format="markdown"
+      local parallel="true"
+      local dependencies="true"
+      
+      shift
+      while [[ $# -gt 0 ]]; do
+        case $1 in
+          --format)
+            format="$2"
+            shift 2
+            ;;
+          --parallel)
+            parallel="true"
+            shift
+            ;;
+          --dependencies)
+            dependencies="true"
+            shift
+            ;;
+          *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+        esac
+      done
+      
+      create_tasks "$cell_id" "$format" "$parallel" "$dependencies"
+      ;;
+      
+    /implement)
+      # Delegate to implementation script
+      exec "$ROOT_DIR/cbs-agent/scripts/cbs-implement" "$@"
+      ;;
+      
+    /validate-spec)
+      if [[ $# -lt 1 ]]; then
+        echo "❌ Cell ID required"
+        usage
+        exit 1
+      fi
+      validate_spec "$1"
+      ;;
+      
+    /check-prerequisites)
+      if [[ $# -lt 1 ]]; then
+        echo "❌ Cell ID required"
+        usage
+        exit 1
+      fi
+      check_prerequisites "$1"
+      ;;
+      
+    /progress)
+      if [[ $# -lt 1 ]]; then
+        echo "❌ Cell ID required"
+        usage
+        exit 1
+      fi
+      show_progress "$1"
+      ;;
+      
+    *)
+      echo "Unknown command: $command"
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

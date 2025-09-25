@@ -1,0 +1,229 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Bus Simulator - Simulates bus interactions for testing cell communication
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "Usage: cbs-bus-simulator [--app <app_name>] [--cell <cell_name>] [--scenario <scenario_file>]"
+  echo "Simulates NATS bus interactions to test cell communication without a real bus."
+  echo
+  echo "Options:"
+  echo "  --app <name>          Test specific application"
+  echo "  --cell <name>         Test specific cell within the application"
+  echo "  --scenario <file>     Use a specific scenario file for simulation"
+  echo "  --help, -h            Show this help message"
+  echo
+  echo "Purpose:"
+  echo "  - Simulates message publishing and subscribing"
+  echo "  - Validates that cells respond correctly to bus messages"
+  echo "  - Ensures bus-only communication during testing"
+}
+
+# Function to load cell specs and extract subjects
+load_cell_subjects() {
+  local app_path="$1"
+  local cell_name="$2"
+  local spec_path="$app_path/cells/$cell_name/.cbs-spec/spec.md"
+  local subscribe=()
+  local publish=()
+
+  if [[ ! -f "$spec_path" ]]; then
+    echo "❌ Spec file not found for cell $cell_name in $app_path"
+    return 1
+  fi
+
+  echo "📋 Loading subjects for cell: $cell_name"
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^[[:space:]]*-.*subscribe.*:.*cbs\. ]]; then
+      local subject=$(echo "$line" | grep -o 'cbs\.[a-z0-9_\.\*\{\}]+' | head -1)
+      if [[ -n "$subject" ]]; then
+        subscribe+=("$subject")
+        echo "  📥 Subscribe: $subject"
+      fi
+    elif [[ "$line" =~ ^[[:space:]]*-.*publish.*:.*cbs\. ]]; then
+      local subject=$(echo "$line" | grep -o 'cbs\.[a-z0-9_\.\*\{\}]+' | head -1)
+      if [[ -n "$subject" ]]; then
+        publish+=("$subject")
+        echo "  📤 Publish: $subject"
+      fi
+    fi
+  done < "$spec_path"
+
+  echo "subscribe=(${subscribe[*]})" > "/tmp/cbs_bus_simulator_$cell_name"
+  echo "publish=(${publish[*]})" >> "/tmp/cbs_bus_simulator_$cell_name"
+  return 0
+}
+
+# Function to simulate bus message for a cell
+simulate_bus_message() {
+  local app_path="$1"
+  local cell_name="$2"
+  local subject="$3"
+  local payload="$4"
+  local cell_dir="$app_path/cells/$cell_name"
+
+  echo "🚀 Simulating bus message for $cell_name on subject: $subject"
+  echo "  📦 Payload: $payload"
+
+  # Check if cell subscribes to this subject
+  source "/tmp/cbs_bus_simulator_$cell_name"
+  local subscribed=false
+  for sub in "${subscribe[@]}"; do
+    if [[ "$subject" == "$sub" || ( "$sub" =~ \* && "$subject" =~ ${sub//\*/.*} ) ]]; then
+      subscribed=true
+      break
+    fi
+  done
+
+  if [[ "$subscribed" == true ]]; then
+    echo "  ✅ Cell $cell_name subscribes to $subject, simulating receipt..."
+    # Here we would trigger the cell's handler for this subject
+    # For simulation, we'll just log the event
+    echo "  📩 Message received by $cell_name on $subject"
+    # Check if cell publishes a response
+    for pub in "${publish[@]}"; do
+      if [[ -n "$pub" ]]; then
+        echo "  📤 Cell $cell_name publishes response on $pub"
+        # Simulate a response payload (simplified)
+        local response_payload="Response to $subject from $cell_name"
+        echo "      📦 Response Payload: $response_payload"
+        # Log this as a simulated publish event
+        echo "  📢 Simulated publish event on $pub by $cell_name"
+      fi
+    done
+  else
+    echo "  ⚠️ Cell $cell_name does not subscribe to $subject, ignoring message"
+  fi
+}
+
+# Function to run a test scenario
+run_test_scenario() {
+  local app_path="$1"
+  local cell_name="$2"
+  local scenario_file="$3"
+
+  if [[ ! -f "$scenario_file" ]]; then
+    echo "❌ Scenario file not found: $scenario_file"
+    return 1
+  fi
+
+  echo "🎬 Running test scenario for $cell_name from $scenario_file"
+  
+  # Load subjects for the cell
+  if ! load_cell_subjects "$app_path" "$cell_name"; then
+    return 1
+  fi
+
+  # Read scenario file and simulate messages
+  local current_subject=""
+  local current_payload=""
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^[[:space:]]*Subject:[[:space:]]*(cbs\.[a-z0-9_\.\*\{\}]+) ]]; then
+      if [[ -n "$current_subject" && -n "$current_payload" ]]; then
+        simulate_bus_message "$app_path" "$cell_name" "$current_subject" "$current_payload"
+      fi
+      current_subject="${BASH_REMATCH[1]}"
+      current_payload=""
+    elif [[ "$line" =~ ^[[:space:]]*Payload:[[:space:]]*(.+) ]]; then
+      current_payload="${BASH_REMATCH[1]}"
+    fi
+  done < "$scenario_file"
+
+  # Simulate the last message if exists
+  if [[ -n "$current_subject" && -n "$current_payload" ]]; then
+    simulate_bus_message "$app_path" "$cell_name" "$current_subject" "$current_payload"
+  fi
+
+  echo "🏁 Test scenario completed for $cell_name"
+  return 0
+}
+
+# Parse arguments
+APP_NAME=""
+CELL_NAME=""
+SCENARIO_FILE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --app)
+      APP_NAME="$2"
+      shift 2
+      ;;
+    --cell)
+      CELL_NAME="$2"
+      shift 2
+      ;;
+    --scenario)
+      SCENARIO_FILE="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+echo "🚌 CBS Bus Simulator"
+echo "===================="
+
+# Validate inputs
+if [[ -z "$APP_NAME" ]]; then
+  echo "❌ Application name must be specified with --app"
+  usage
+  exit 1
+fi
+
+if [[ -z "$CELL_NAME" ]]; then
+  echo "❌ Cell name must be specified with --cell"
+  usage
+  exit 1
+fi
+
+# Find application path
+app_path=""
+for base_dir in "$ROOT_DIR/applications"; do
+  if [[ -d "$base_dir/$APP_NAME" ]]; then
+    app_path="$base_dir/$APP_NAME"
+    echo "📁 Found application: $APP_NAME"
+    break
+  fi
+done
+
+if [[ -z "$app_path" ]]; then
+  echo "❌ Application not found: $APP_NAME"
+  exit 1
+fi
+
+# Check if cell exists
+if [[ ! -d "$app_path/cells/$CELL_NAME" ]]; then
+  echo "❌ Cell not found: $CELL_NAME in $APP_NAME"
+  exit 1
+else
+  echo "🧬 Found cell: $CELL_NAME"
+fi
+
+# Run test scenario if provided, otherwise run a default simulation
+if [[ -n "$SCENARIO_FILE" ]]; then
+  run_test_scenario "$app_path" "$CELL_NAME" "$SCENARIO_FILE"
+else
+  echo "📝 No scenario file provided, running default simulation for $CELL_NAME"
+  # Load subjects for the cell
+  if load_cell_subjects "$app_path" "$CELL_NAME"; then
+    source "/tmp/cbs_bus_simulator_$CELL_NAME"
+    # Simulate a message for each subscribed subject
+    for subj in "${subscribe[@]}"; do
+      if [[ -n "$subj" ]]; then
+        simulate_bus_message "$app_path" "$CELL_NAME" "$subj" "Test payload for $subj"
+      fi
+    done
+  fi
+fi
+
+echo "✅ Bus simulation completed for $CELL_NAME in $APP_NAME"

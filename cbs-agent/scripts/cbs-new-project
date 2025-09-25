@@ -1,0 +1,56 @@
+#!/bin/bash
+# CBS Framework - New Project Scaffolding Tool
+set -e
+
+PROJECT_NAME="$1"
+if [ -z "$PROJECT_NAME" ]; then
+    echo "Usage: cbs-new <project-name>"
+    echo "Example: cbs-new my-cbs-app"
+    exit 1
+fi
+
+CBS_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TEMPLATE_DIR="$CBS_ROOT/template"
+TARGET_DIR="$PROJECT_NAME"
+
+echo "🧬 Creating new CBS project: $PROJECT_NAME"
+
+# Check if directory already exists
+if [ -d "$TARGET_DIR" ]; then
+    echo "❌ Directory $TARGET_DIR already exists"
+    exit 1
+fi
+
+# Copy template
+echo "📋 Copying template..."
+cp -r "$TEMPLATE_DIR" "$TARGET_DIR"
+
+# Replace template variables
+echo "🔧 Configuring project..."
+sed -i.bak "s/{{project_name}}/$PROJECT_NAME/g" "$TARGET_DIR/README.md"
+sed -i.bak "s/{{project_name}}/$PROJECT_NAME/g" "$TARGET_DIR/app.yaml"
+sed -i.bak "s/{{app_name}}/main/g" "$TARGET_DIR/README.md"
+rm "$TARGET_DIR"/*.bak 2>/dev/null || true
+
+# Initialize git repository
+cd "$TARGET_DIR"
+git init
+echo "target/" > .gitignore
+echo "Cargo.lock" >> .gitignore
+
+# Create initial commit
+git add .
+git commit -m "Initial CBS project setup"
+
+echo "✅ CBS project '$PROJECT_NAME' created successfully!"
+echo ""
+echo "Next steps:"
+echo "  cd $PROJECT_NAME"
+echo "  # Add your first application:"
+echo "  mkdir -p applications/my_app/cells"
+echo "  # Build and run:"
+echo "  cargo build"
+echo ""
+echo "📚 Documentation: https://github.com/user/cbs-framework/docs"
+
+

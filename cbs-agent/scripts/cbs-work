@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage(){
+  echo "Usage: cbs work <app> <cell>"
+}
+
+if [[ $# -lt 2 ]]; then usage; exit 1; fi
+
+app="$1"; cell="$2"
+
+"$ROOT_DIR/cbs-agent/scripts/cbs-app-context" "$app" >/dev/null 2>&1 || true
+"$ROOT_DIR/cbs-agent/scripts/cbs-cell-focus" "$cell" || true
+
+echo "✅ Work context set: app=$app, cell=$cell"
+
+
+
+

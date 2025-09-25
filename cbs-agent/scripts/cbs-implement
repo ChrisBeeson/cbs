@@ -1,0 +1,564 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Implementation Engine - Execute spec-driven cell implementation
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+SPECS_DIR="$ROOT_DIR/specs"
+
+usage() {
+  echo "CBS Implementation Engine - Execute Spec-Driven Implementation"
+  echo
+  echo "Usage: cbs /implement <cell_id> [options]"
+  echo
+  echo "Options:"
+  echo "  --phase <foundation|business|quality>  Run specific phase"
+  echo "  --task <task_id>                       Run specific task (e.g., FOUNDATION-001)"
+  echo "  --dry-run                              Show what would be done"
+  echo "  --continue                             Continue from last checkpoint"
+  echo "  --parallel                             Run parallel tasks simultaneously"
+  echo "  --skip-tests                           Skip test execution"
+  echo
+  echo "Examples:"
+  echo "  cbs /implement user_auth --phase foundation"
+  echo "  cbs /implement user_auth --task BUSINESS-001"
+  echo "  cbs /implement user_auth --dry-run"
+  echo "  cbs /implement user_auth --continue"
+}
+
+# Get current app context
+get_current_app() {
+  if [ ! -f "$ROOT_DIR/.cbs-workflow-state" ]; then
+    echo "❌ No workflow state found. Initialize with: cbs app-create <app_name>"
+    exit 1
+  fi
+  
+  yq eval '.current_app' "$ROOT_DIR/.cbs-workflow-state"
+}
+
+# Create cell directory structure
+create_cell_structure() {
+  local cell_id="$1"
+  local app_name="$2"
+  local category="$3"
+  local language="$4"
+  
+  local cell_dir="$ROOT_DIR/applications/$app_name/cells/$cell_id"
+  
+  echo "🏗️  Creating cell structure: $cell_dir"
+  
+  # Create directory structure
+  mkdir -p "$cell_dir"/{lib/{models,services,utils},test/{unit,integration},ai}
+  
+  # Create pubspec.yaml
+  cat > "$cell_dir/pubspec.yaml" << EOF
+name: ${cell_id}
+description: CBS Cell - ${cell_id}
+version: 1.0.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  logger: ^2.0.0
+  
+  # CBS SDK
+  cbs_sdk:
+    path: ../../../framework/shared_cells/dart/cbs_sdk
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mockito: ^5.4.0
+  build_runner: ^2.4.0
+
+flutter:
+  uses-material-design: true
+EOF
+
+  # Create basic lib structure
+  local cell_class_name=$(echo "$cell_id" | sed 's/_//g' | sed 's/\b\w/\U&/g')
+  
+  # Create main cell file
+  cat > "$cell_dir/lib/${cell_id}_cell.dart" << EOF
+import 'package:cbs_sdk/cbs_sdk.dart';
+import 'package:logger/logger.dart';
+
+/// ${cell_class_name} Cell - CBS Implementation
+class ${cell_class_name}Cell implements Cell {
+  static final Logger _logger = Logger();
+  
+  @override
+  String get id => '${cell_id}';
+  
+  @override
+  List<String> get subjects => [
+    // TODO: Add subscribed subjects from specification
+  ];
+  
+  @override
+  void register(MessageBus bus) {
+    // TODO: Register message handlers based on specification
+    _logger.i('[\$id] Cell registered with message bus');
+  }
+  
+  /// Handle incoming messages
+  Future<void> _handleMessage(Envelope envelope) async {
+    final correlationId = envelope.correlationId;
+    _logger.d('[\$correlationId] Processing message: \${envelope.subject}');
+    
+    try {
+      // TODO: Implement message handling logic
+      
+    } catch (error, stackTrace) {
+      _logger.e('[\$correlationId] Error processing message', 
+               error: error, stackTrace: stackTrace);
+      
+      // Publish error envelope
+      // TODO: Implement error envelope publishing
+    }
+  }
+}
+EOF
+
+  # Create models directory structure
+  touch "$cell_dir/lib/models/.gitkeep"
+  
+  # Create services directory structure  
+  touch "$cell_dir/lib/services/.gitkeep"
+  
+  # Create utils/logger.dart
+  cat > "$cell_dir/lib/utils/logger.dart" << EOF
+import 'package:logger/logger.dart';
+
+/// Centralized logging for ${cell_class_name} cell
+class CellLogger {
+  static final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 2,
+      errorMethodCount: 8,
+      lineLength: 120,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
+  
+  static void d(String message, {String? correlationId}) {
+    _logger.d(_formatMessage(message, correlationId));
+  }
+  
+  static void i(String message, {String? correlationId}) {
+    _logger.i(_formatMessage(message, correlationId));
+  }
+  
+  static void w(String message, {String? correlationId}) {
+    _logger.w(_formatMessage(message, correlationId));
+  }
+  
+  static void e(String message, {String? correlationId, Object? error, StackTrace? stackTrace}) {
+    _logger.e(_formatMessage(message, correlationId), error: error, stackTrace: stackTrace);
+  }
+  
+  static String _formatMessage(String message, String? correlationId) {
+    return correlationId != null ? '[\$correlationId] \$message' : message;
+  }
+}
+EOF
+
+  # Create basic test file
+  cat > "$cell_dir/test/unit/${cell_id}_cell_test.dart" << EOF
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:${cell_id}/${cell_id}_cell.dart';
+
+void main() {
+  group('${cell_class_name}Cell', () {
+    late ${cell_class_name}Cell cell;
+    
+    setUp(() {
+      cell = ${cell_class_name}Cell();
+    });
+    
+    test('should have correct cell ID', () {
+      expect(cell.id, equals('${cell_id}'));
+    });
+    
+    test('should register subjects correctly', () {
+      expect(cell.subjects, isA<List<String>>());
+      // TODO: Add specific subject tests based on specification
+    });
+    
+    // TODO: Add more tests based on specification
+  });
+}
+EOF
+
+  # Create integration test file
+  cat > "$cell_dir/test/integration/${cell_id}_integration_test.dart" << EOF
+import 'package:flutter_test/flutter_test.dart';
+import 'package:${cell_id}/${cell_id}_cell.dart';
+
+void main() {
+  group('${cell_class_name}Cell Integration Tests', () {
+    late ${cell_class_name}Cell cell;
+    
+    setUp(() {
+      cell = ${cell_class_name}Cell();
+    });
+    
+    test('should handle message bus communication', () async {
+      // TODO: Add integration tests with message bus
+    });
+    
+    // TODO: Add more integration tests based on specification
+  });
+}
+EOF
+
+  # Copy specification to ai directory
+  local spec_dir="$SPECS_DIR/$(ls $SPECS_DIR | grep $cell_id | head -n1)"
+  if [ -d "$spec_dir" ] && [ -f "$spec_dir/spec.md" ]; then
+    cp "$spec_dir/spec.md" "$cell_dir/ai/"
+    echo "✅ Specification copied to cell directory"
+  fi
+  
+  # Create README
+  cat > "$cell_dir/README.md" << EOF
+# ${cell_class_name} Cell
+
+## Overview
+This is a CBS (Cell Body System) cell implementing ${cell_id} functionality.
+
+## Category
+${category}
+
+## Language
+${language}
+
+## Development
+\`\`\`bash
+# Install dependencies
+flutter pub get
+
+# Run tests
+flutter test
+
+# Run specific test suite
+flutter test test/unit/
+flutter test test/integration/
+
+# Generate test coverage
+flutter test --coverage
+genhtml coverage/lcov.info -o coverage/html
+\`\`\`
+
+## CBS Compliance
+- ✅ Bus-only communication
+- ✅ Single responsibility
+- ✅ Comprehensive testing
+- ✅ Proper error handling
+- ✅ Structured logging
+
+## Message Contracts
+See \`.cbs-spec/spec.md\` for detailed message contracts and interface specification.
+EOF
+
+  echo "✅ Cell structure created successfully"
+}
+
+# Install dependencies and setup
+setup_dependencies() {
+  local cell_id="$1"
+  local app_name="$2"
+  
+  local cell_dir="$ROOT_DIR/applications/$app_name/cells/$cell_id"
+  
+  echo "📦 Installing dependencies for: $cell_id"
+  
+  cd "$cell_dir"
+  
+  # Install Flutter dependencies
+  if command -v flutter &> /dev/null; then
+    flutter pub get
+    echo "✅ Flutter dependencies installed"
+  else
+    echo "⚠️  Flutter not found - skipping dependency installation"
+  fi
+  
+  # Run initial build to check for errors
+  if command -v flutter &> /dev/null; then
+    if flutter analyze --no-fatal-infos; then
+      echo "✅ Static analysis passed"
+    else
+      echo "⚠️  Static analysis found issues - review and fix"
+    fi
+  fi
+}
+
+# Run tests
+run_tests() {
+  local cell_id="$1"
+  local app_name="$2"
+  local test_type="${3:-all}"
+  
+  local cell_dir="$ROOT_DIR/applications/$app_name/cells/$cell_id"
+  
+  echo "🧪 Running tests for: $cell_id"
+  
+  cd "$cell_dir"
+  
+  case "$test_type" in
+    unit)
+      flutter test test/unit/
+      ;;
+    integration)
+      flutter test test/integration/
+      ;;
+    all|*)
+      flutter test
+      ;;
+  esac
+  
+  # Generate coverage report
+  if [ -f "coverage/lcov.info" ]; then
+    echo "📊 Test coverage report generated"
+    if command -v genhtml &> /dev/null; then
+      genhtml coverage/lcov.info -o coverage/html --quiet
+      echo "📊 HTML coverage report: coverage/html/index.html"
+    fi
+  fi
+}
+
+# Execute foundation phase
+execute_foundation_phase() {
+  local cell_id="$1"
+  local app_name="$2"
+  local dry_run="$3"
+  
+  echo "🏗️  Executing Foundation Phase for: $cell_id"
+  
+  local spec_dir="$SPECS_DIR/$(ls $SPECS_DIR | grep $cell_id | head -n1)"
+  
+  if [ ! -d "$spec_dir" ]; then
+    echo "❌ No specification found for $cell_id"
+    exit 1
+  fi
+  
+  # Extract cell info from spec
+  local category=$(grep "Category.*:" "$spec_dir/spec.md" | head -1 | cut -d: -f2 | xargs)
+  local language=$(grep "Language.*:" "$spec_dir/spec.md" | head -1 | cut -d: -f2 | xargs)
+  
+  if [ "$dry_run" = "true" ]; then
+    echo "🔍 DRY RUN - Foundation Phase Tasks:"
+    echo "  1. Create cell structure"
+    echo "  2. Setup message bus integration"
+    echo "  3. Implement core data structures"
+    echo "  4. Setup logging and error handling"
+    echo "  5. Install dependencies"
+    echo "  6. Run initial tests"
+    return 0
+  fi
+  
+  # Task 1: Create cell structure
+  echo "📋 TASK-1: Creating project structure..."
+  create_cell_structure "$cell_id" "$app_name" "$category" "$language"
+  mark_task_complete "$cell_id" "FOUNDATION-001"
+  
+  # Task 2: Setup dependencies
+  echo "📋 TASK-2: Setting up dependencies..."
+  setup_dependencies "$cell_id" "$app_name"
+  mark_task_complete "$cell_id" "FOUNDATION-002"
+  
+  # Task 3: Run initial tests
+  echo "📋 TASK-3: Running initial tests..."
+  run_tests "$cell_id" "$app_name" "unit"
+  mark_task_complete "$cell_id" "FOUNDATION-003"
+  
+  echo "✅ Foundation phase completed successfully"
+}
+
+# Mark task as complete in tasks.md
+mark_task_complete() {
+  local cell_id="$1"
+  local task_id="$2"
+  
+  local spec_dir="$SPECS_DIR/$(ls $SPECS_DIR | grep $cell_id | head -n1)"
+  
+  if [ -f "$spec_dir/tasks.md" ]; then
+    # Update task status in tasks.md
+    sed -i.bak "s/- \[ \] \*\*$task_id\*\*/- [x] **$task_id**/" "$spec_dir/tasks.md"
+    rm "$spec_dir/tasks.md.bak" 2>/dev/null || true
+    echo "✅ Marked $task_id as complete"
+  fi
+}
+
+# Execute specific task
+execute_task() {
+  local cell_id="$1"
+  local task_id="$2"
+  local dry_run="$3"
+  
+  echo "📋 Executing task: $task_id for cell: $cell_id"
+  
+  case "$task_id" in
+    FOUNDATION-001)
+      if [ "$dry_run" = "true" ]; then
+        echo "🔍 Would create cell project structure"
+      else
+        local app_name=$(get_current_app)
+        create_cell_structure "$cell_id" "$app_name" "logic" "dart"
+        mark_task_complete "$cell_id" "$task_id"
+      fi
+      ;;
+    FOUNDATION-002)
+      if [ "$dry_run" = "true" ]; then
+        echo "🔍 Would setup message bus integration"
+      else
+        echo "📋 Message bus integration setup (manual implementation required)"
+        # This would require custom implementation based on spec
+      fi
+      ;;
+    *)
+      echo "❌ Unknown task: $task_id"
+      echo "Available tasks: FOUNDATION-001, FOUNDATION-002, ..."
+      exit 1
+      ;;
+  esac
+}
+
+# Show implementation status
+show_implementation_status() {
+  local cell_id="$1"
+  local app_name="$2"
+  
+  echo "📊 Implementation Status for: $cell_id"
+  echo
+  
+  local cell_dir="$ROOT_DIR/applications/$app_name/cells/$cell_id"
+  
+  # Check if cell directory exists
+  if [ -d "$cell_dir" ]; then
+    echo "✅ Cell directory exists"
+    
+    # Check key files
+    [ -f "$cell_dir/pubspec.yaml" ] && echo "✅ pubspec.yaml" || echo "❌ pubspec.yaml missing"
+    [ -f "$cell_dir/lib/${cell_id}_cell.dart" ] && echo "✅ Main cell file" || echo "❌ Main cell file missing"
+    [ -d "$cell_dir/test" ] && echo "✅ Test directory" || echo "❌ Test directory missing"
+    [ -f "$cell_dir/.cbs-spec/spec.md" ] && echo "✅ Specification" || echo "❌ Specification missing"
+    
+    # Check if dependencies are installed
+    if [ -f "$cell_dir/pubspec.lock" ]; then
+      echo "✅ Dependencies installed"
+    else
+      echo "❌ Dependencies not installed"
+    fi
+    
+    # Run quick health check
+    cd "$cell_dir"
+    if command -v flutter &> /dev/null; then
+      if flutter analyze --no-fatal-infos > /dev/null 2>&1; then
+        echo "✅ Static analysis passes"
+      else
+        echo "⚠️  Static analysis issues detected"
+      fi
+      
+      if flutter test --reporter=json > /dev/null 2>&1; then
+        echo "✅ Tests passing"
+      else
+        echo "⚠️  Test failures detected"
+      fi
+    fi
+  else
+    echo "❌ Cell directory does not exist"
+  fi
+}
+
+# Main command handler
+main() {
+  if [[ $# -eq 0 ]]; then
+    usage
+    exit 1
+  fi
+  
+  local cell_id="$1"
+  shift
+  
+  local phase=""
+  local task_id=""
+  local dry_run="false"
+  local continue_flag="false"
+  local parallel="false"
+  local skip_tests="false"
+  
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --phase)
+        phase="$2"
+        shift 2
+        ;;
+      --task)
+        task_id="$2"
+        shift 2
+        ;;
+      --dry-run)
+        dry_run="true"
+        shift
+        ;;
+      --continue)
+        continue_flag="true"
+        shift
+        ;;
+      --parallel)
+        parallel="true"
+        shift
+        ;;
+      --skip-tests)
+        skip_tests="true"
+        shift
+        ;;
+      *)
+        echo "Unknown option: $1"
+        usage
+        exit 1
+        ;;
+    esac
+  done
+  
+  local app_name=$(get_current_app)
+  
+  # Check prerequisites
+  if ! "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /check-prerequisites "$cell_id" > /dev/null 2>&1; then
+    echo "❌ Prerequisites not met. Run: cbs /check-prerequisites $cell_id"
+    exit 1
+  fi
+  
+  # Execute based on parameters
+  if [ -n "$task_id" ]; then
+    execute_task "$cell_id" "$task_id" "$dry_run"
+  elif [ -n "$phase" ]; then
+    case "$phase" in
+      foundation)
+        execute_foundation_phase "$cell_id" "$app_name" "$dry_run"
+        ;;
+      business)
+        echo "🚧 Business phase implementation coming soon"
+        ;;
+      quality)
+        echo "🚧 Quality phase implementation coming soon"
+        ;;
+      *)
+        echo "❌ Unknown phase: $phase"
+        echo "Available phases: foundation, business, quality"
+        exit 1
+        ;;
+    esac
+  else
+    # Show status if no specific action requested
+    show_implementation_status "$cell_id" "$app_name"
+  fi
+}
+
+main "$@"
+

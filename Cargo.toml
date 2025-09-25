@@ -1,14 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-    "body",
-    "body_core",
-    "body_bus",
-    "applications/cli_greeter/cells/greeter_rs",
-    "applications/cli_greeter/cells/io_prompt_name_rs", 
-    "applications/cli_greeter/cells/logic_greet_rs",
-    "applications/cli_greeter/cells/io_print_greeting_rs",
-    "shared_cells/rust/web_server"
+    "framework/body",
+    "framework/body_core", 
+    "framework/body_bus",
+    "framework/shared_cells/rust/web_server"
 ]
 
 [workspace.dependencies]

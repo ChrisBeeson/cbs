@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "CBS Validation Aggregator"
+  echo "Usage: cbs-validate [--all] [--specs] [--envelopes] [--map] [--architecture] [--isolation] [--code] [--prereqs <cell_id>]"
+}
+
+if [[ ${1-} == "--help" || ${1-} == "-h" ]]; then
+  usage; exit 0
+fi
+
+run() { echo "▶ $*"; eval "$*" || { echo "❌ Failed: $*"; exit 1; }; }
+
+all=false specs=false envelopes=false cmap=false arch=false iso=false code=false prereqs=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --all) all=true; shift;;
+    --specs) specs=true; shift;;
+    --envelopes) envelopes=true; shift;;
+    --map) cmap=true; shift;;
+    --architecture) arch=true; shift;;
+    --isolation) iso=true; shift;;
+    --code) code=true; shift;;
+    --prereqs) prereqs="$2"; shift 2;;
+    *) echo "Unknown option: $1"; usage; exit 1;;
+  esac
+done
+
+if $all; then specs=true; envelopes=true; cmap=true; arch=true; iso=true; code=true; fi
+
+status=0
+
+if $specs; then
+  if [[ -x "$ROOT_DIR/cbs-agent/scripts/cbs-validate-spec" ]]; then
+    "$ROOT_DIR/cbs-agent/scripts/cbs-validate-spec" || status=$?
+  else
+    echo "⚠️  Missing cbs-validate-spec"
+  fi
+fi
+
+if $envelopes; then
+  if [[ -x "$ROOT_DIR/cbs-agent/scripts/validate_envelopes.sh" ]]; then
+    run "$ROOT_DIR/cbs-agent/scripts/validate_envelopes.sh" || status=$?
+  else
+    echo "⚠️  Missing validate_envelopes.sh"
+  fi
+fi
+
+if $cmap; then
+  if [[ -x "$ROOT_DIR/cbs-agent/scripts/generate_cell_map.py" ]]; then
+    run python3 "$ROOT_DIR/cbs-agent/scripts/generate_cell_map.py" || status=$?
+  else
+    echo "⚠️  Missing generate_cell_map.py"
+  fi
+fi
+
+if $arch; then
+  if [[ -x "$ROOT_DIR/cbs-agent/scripts/cbs-validate-architecture" ]]; then
+    run "$ROOT_DIR/cbs-agent/scripts/cbs-validate-architecture" || status=$?
+  else
+    echo "⚠️  Missing cbs-validate-architecture"
+  fi
+fi
+
+if $iso; then
+  if [[ -x "$ROOT_DIR/cbs-agent/scripts/cbs-validate-isolation" ]]; then
+    run "$ROOT_DIR/cbs-agent/scripts/cbs-validate-isolation" --all || status=$?
+  else
+    echo "⚠️  Missing cbs-validate-isolation"
+  fi
+fi
+
+if $code; then
+  if [[ -x "$ROOT_DIR/cbs-agent/scripts/cbs-validate-code-isolation" ]]; then
+    run "$ROOT_DIR/cbs-agent/scripts/cbs-validate-code-isolation" --all || status=$?
+  else
+    echo "⚠️  Missing cbs-validate-code-isolation"
+  fi
+fi
+
+if [[ -n "$prereqs" ]]; then
+  if [[ -x "$ROOT_DIR/cbs-agent/scripts/cbs-spec" ]]; then
+    "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /check-prerequisites "$prereqs" || status=$?
+  else
+    echo "⚠️  Missing cbs-spec"
+  fi
+fi
+
+exit $status
+
+
+
+

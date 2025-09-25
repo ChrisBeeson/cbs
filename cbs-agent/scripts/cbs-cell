@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# cbs-cell: small helper to work with shareable cells catalog
+
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+CATALOG_JSON="$ROOT_DIR/framework/docs/cell_catalog.json"
+
+usage() {
+  echo "Usage: cbs-cell <command> [args...]" >&2
+  echo "Commands:" >&2
+  echo "  create <id> [--app A] [--category C] [--language L]" >&2
+  echo "                                Create a new cell spec (Spec‑Kit)" >&2
+  echo "  refine <id>                   Validate + show path to refine spec" >&2
+  echo "  generate                 Generate catalog (MD + JSON)" >&2
+  echo "  search [--language L] [--category C] [--id ID] [--subject S]" >&2
+  echo "  install <cellId> <app>  Copy cell into applications/<app>/cells/<cellId>" >&2
+}
+
+cmd_generate() {
+  python3 "$ROOT_DIR/cbs-agent/scripts/generate_cell_catalog.py" | cat
+}
+
+cmd_search() {
+  [[ -f "$CATALOG_JSON" ]] || { echo "Catalog not found. Run: cbs-cell generate" >&2; exit 1; }
+  local lang="" cat="" id="" subj=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --language) lang="$2"; shift 2;;
+      --category) cat="$2"; shift 2;;
+      --id) id="$2"; shift 2;;
+      --subject) subj="$2"; shift 2;;
+      *) echo "Unknown arg: $1" >&2; usage; exit 2;;
+    esac
+  done
+  python3 - "$CATALOG_JSON" "$lang" "$cat" "$id" "$subj" <<'PY'
+import json, sys
+path, lang, cat, cid, subj = sys.argv[1:6]
+with open(path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+cells = data.get('cells', [])
+def ok(x):
+    if lang and x.get('language') != lang: return False
+    if cat and x.get('category') != cat: return False
+    if cid and x.get('id') != cid: return False
+    if subj:
+        subs = x.get('subjects',{}).get('subscribe',[])
+        pubs = x.get('subjects',{}).get('publish',[])
+        if subj not in subs and subj not in pubs: return False
+    return True
+for it in cells:
+    if ok(it):
+        print(f"{it['id']}	{it['version']}	{it['language']}	{it['category']}	{it['app']}/{it['cell']}	{it['path']}")
+PY
+}
+
+cmd_install() {
+  local cell_id="$1" app="$2"
+  [[ -f "$CATALOG_JSON" ]] || { echo "Catalog not found. Run: cbs-cell generate" >&2; exit 1; }
+  local src path
+  path=$(python3 - "$CATALOG_JSON" "$cell_id" <<'PY'
+import json, sys
+path, cid = sys.argv[1:3]
+with open(path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+for it in data.get('cells', []):
+    if it.get('id') == cid:
+        print(it.get('path', ''))
+        break
+PY
+)
+  [[ -n "$path" ]] || { echo "Cell not found in catalog: $cell_id" >&2; exit 1; }
+  src="$ROOT_DIR/$path"
+  local dest="$ROOT_DIR/applications/$app/cells/$cell_id"
+  mkdir -p "$(dirname "$dest")"
+  if [[ -e "$dest" ]]; then
+    echo "Destination exists: $dest" >&2
+    exit 2
+  fi
+  cp -R "$src" "$dest"
+  echo "Installed $cell_id to applications/$app/cells/$cell_id"
+}
+
+case "${1-}" in
+  create)
+    shift
+    [[ $# -ge 1 ]] || { usage; exit 2; }
+    cid="$1"; shift || true
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /spec "$cid" "$@"
+    ;;
+  refine)
+    shift
+    [[ $# -ge 1 ]] || { usage; exit 2; }
+    cid="$1"; shift || true
+    "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /spec "$cid" >/dev/null 2>&1 || true
+    "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /validate-spec "$cid" || true
+    # Show path for convenience
+    spec_dir="$ROOT_DIR/specs/$(ls -1 \"$ROOT_DIR/specs\" 2>/dev/null | grep \"$cid\" | head -n1)"
+    if [ -n "$spec_dir" ] && [ -f "$spec_dir/spec.md" ]; then
+      echo "📝 Refine: $spec_dir/spec.md"
+    else
+      echo "📝 Refine: specs/<date>-$cid/spec.md"
+    fi
+    ;;
+  generate) shift; cmd_generate "$@" ;;
+  search) shift; cmd_search "$@" ;;
+  install) shift; [[ $# -eq 2 ]] || { usage; exit 2; }; cmd_install "$@" ;;
+  *) usage; exit 2 ;;
+esac
+
+

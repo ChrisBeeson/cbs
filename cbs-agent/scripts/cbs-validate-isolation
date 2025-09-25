@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Wrapper to prefer agent-os version if present
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+ALT="$ROOT_DIR/cbs-agent/scripts/agent-os/cbs-validate-isolation"
+if [ -x "$ALT" ]; then
+  exec "$ALT" "$@"
+fi
+
+echo "Error: agent-os validator not found at $ALT" >&2
+exit 127
+
+

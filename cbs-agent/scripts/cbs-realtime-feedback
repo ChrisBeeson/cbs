@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Real-Time Feedback Tool - Provides immediate CBS compliance feedback in development environment
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+usage() {
+  echo "Usage: cbs-realtime-feedback [--watch <file_or_dir>] [--app <app_name>]"
+  echo "Provides real-time feedback on CBS compliance during development."
+  echo
+  echo "Options:"
+  echo "  --watch <file_or_dir>  Watch specific file or directory for changes"
+  echo "  --app <name>           Focus on specific application"
+  echo "  --help, -h             Show this help message"
+  echo
+  echo "Purpose:"
+  echo "  - Warns immediately if direct cell communication is attempted"
+  echo "  - Checks for bus-only communication compliance"
+  echo "  - Validates message subjects format"
+  echo "  - Can be integrated as an IDE plugin or editor extension"
+}
+
+# Function to check CBS compliance in a file
+def check_file_compliance() {
+  local file_path="$1"
+  local file_name="$(basename "$file_path")"
+  local cell_name="$(basename "$(dirname "$(dirname "$file_path")")")"
+  echo "🔍 Checking CBS compliance for: $file_name in cell $cell_name"
+  local errors=0
+
+  # Determine file type
+  if [[ "$file_path" == *.rs ]]; then
+    # Rust file check
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^[[:space:]]*use[[:space:]]+[^;]+; ]]; then
+        # Check if importing another cell
+        for other_cell in "$ROOT_DIR/applications"/*/cells/*; do
+          if [[ -d "$other_cell" && "$other_cell" != *"$cell_name"* ]]; then
+            local other_cell_name="$(basename "$other_cell")"
+            if [[ "$line" =~ "$other_cell_name" ]]; then
+              echo "  ❌ Direct import of cell $other_cell_name detected in $file_name"
+              echo "     Line: $line"
+              echo "     CBS Violation: Cells must communicate only via bus"
+              ((errors++))
+            fi
+          fi
+        done
+      fi
+    done < "$file_path"
+  elif [[ "$file_path" == *.dart ]]; then
+    # Dart file check
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^[[:space:]]*import[[:space:]]+["']package:.*["']; ]]; then
+        # Check if importing another cell
+        for other_cell in "$ROOT_DIR/applications"/*/cells/*; do
+          if [[ -d "$other_cell" && "$other_cell" != *"$cell_name"* ]]; then
+            local other_cell_name="$(basename "$other_cell")"
+            if [[ "$line" =~ "$other_cell_name" ]]; then
+              echo "  ❌ Direct import of cell $other_cell_name detected in $file_name"
+              echo "     Line: $line"
+              echo "     CBS Violation: Cells must communicate only via bus"
+              ((errors++))
+            fi
+          fi
+        done
+      fi
+    done < "$file_path"
+  fi
+
+  # Check spec.md for subject format if it's a spec file
+  if [[ "$file_name" == "spec.md" ]]; then
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^[[:space:]]*-.*(subscribe|publish).*:.*cbs\. ]]; then
+        local subject=$(echo "$line" | grep -o 'cbs\.[a-z0-9_\.\*\{\}]+' | head -1)
+        if [[ -n "$subject" && ! "$subject" =~ ^cbs\.[a-z0-9_]+\.[a-z0-9_\*\{\}]+(\..*)?$ && "$subject" != "cbs.>" ]]; then
+          echo "  ❌ Invalid subject format in $file_name"
+          echo "     Subject: $subject"
+          echo "     CBS Violation: Subjects must be in format cbs.service.verb"
+          ((errors++))
+        fi
+      fi
+    done < "$file_path"
+  fi
+
+  if [[ $errors -eq 0 ]]; then
+    echo "  ✅ CBS compliance check passed for $file_name"
+  else
+    echo "  ❌ CBS compliance check failed with $errors errors for $file_name"
+  fi
+  return $errors
+}
+
+# Parse arguments
+WATCH_TARGET=""
+APP_NAME=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --watch)
+      WATCH_TARGET="$2"
+      shift 2
+      ;;
+    --app)
+      APP_NAME="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+# If no watch target specified, use current directory or app if specified
+echo "🔄 Setting up real-time CBS compliance feedback"
+if [[ -z "$WATCH_TARGET" ]]; then
+  if [[ -n "$APP_NAME" ]]; then
+    for base_dir in "$ROOT_DIR/applications" "$ROOT_DIR/examples/applications"; do
+      if [[ -d "$base_dir/$APP_NAME" ]]; then
+        WATCH_TARGET="$base_dir/$APP_NAME"
+        echo "  📁 Watching application: $APP_NAME"
+        break
+      fi
+    done
+    if [[ -z "$WATCH_TARGET" ]]; then
+      echo "❌ Application not found: $APP_NAME"
+      exit 1
+    fi
+  else
+    WATCH_TARGET="$(pwd)"
+    echo "  📁 Watching current directory: $WATCH_TARGET"
+  fi
+fi
+
+# Check if fswatch is installed (for watching file changes)
+if ! command -v fswatch &> /dev/null; then
+  echo "❌ fswatch is required for real-time feedback. Please install it."
+  echo "  On macOS: brew install fswatch"
+  echo "  On Linux: apt-get install fswatch (or equivalent for your distro)"
+  exit 1
+fi
+
+echo "🚀 Starting real-time CBS compliance feedback"
+echo "  📍 Target: $WATCH_TARGET"
+echo "  Press Ctrl+C to stop..."
+
+# Use fswatch to monitor file changes and trigger compliance checks
+fswatch -o "$WATCH_TARGET" | while read -r; do
+  echo "🔄 Detected changes, running CBS compliance check..."
+  if [[ -f "$WATCH_TARGET" ]]; then
+    check_file_compliance "$WATCH_TARGET"
+  else
+    find "$WATCH_TARGET" -type f \( -name "*.rs" -o -name "*.dart" -o -name "spec.md" \) -exec bash -c 'check_file_compliance "$0"' {} \;
+  fi
+done
