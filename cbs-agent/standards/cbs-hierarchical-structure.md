@@ -154,8 +154,18 @@ SUBJECT: "cbs.chat_interface.send_message"  # Clear and simple
 
 ### **Spec File Location**
 ```bash
-# Spec always at cell level
-applications/my_app/cells/features/messaging/ui/chat_interface/ai/spec.md
+# Folder hierarchy (kebab-case)
+
+applications/<app>/cells/<domain>/<category>/<cell-name>
+
+- domain: core | features | shared
+- category: ui | logic | storage | integration | io
+
+Examples:
+
+applications/my_app/cells/features/auth/ui/login-form/.cbs-spec/spec.md
+applications/my_app/cells/core/logic/app-controller/.cbs-spec/spec.md
+applications/my_app/cells/shared/integration/payment-gateway/.cbs-spec/spec.md
 
 # Cell implementation
 applications/my_app/cells/features/messaging/ui/chat_interface/lib/chat_interface_cell.dart

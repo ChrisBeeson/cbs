@@ -4,6 +4,39 @@
 
 **This is not just another framework - it's a paradigm shift that enables true modularity, language freedom, and natural scaling.**
 
+## 📋 Spec‑Driven Development (SDD) and the Descent into Chaos
+
+- Traditional model: PRDs → code; code becomes the single source of truth; specs drift and get discarded; intent and implementation diverge.
+- With SDD there is no gap: code is always derived from the spec.
+
+**SDD Principles**
+- Specs are king and the single source of truth
+- Code is a generated artifact from the spec
+- Change behavior by changing the spec (make specs executable)
+
+**What makes a good spec**
+- Precise and complete; derived from PRD and design docs
+- Defines end‑to‑end details: tech stack, backend, UI/UX flows
+
+**Agents and Task Agents**
+- Agents research, make tech choices, define data models and boundaries
+- Task Agents break specs into actionable tasks
+
+**TDD everywhere**
+- Tests validate that generated code matches intent
+- Near‑total coverage ensures correctness and confidence
+
+**The problem to avoid**
+- Refinement can be painful if hidden coupling creeps in
+- Generated structures resist ad‑hoc change → “vibe coding” chaos
+- Goals get fuzzy; time and tokens burn; residue remains
+
+**Answer: isolate by construction**
+- Break systems into small, independent cells that know nothing about each other
+- Communicate only via the bus to eliminate hidden coupling
+
+This is exactly what CBS provides.
+
 ## 🧬 The CBS Way
 
 **Biological Isolation**: Cells MUST ONLY communicate through the bus
@@ -104,7 +137,15 @@ my-project/
 
 ## 🧬 Cell Architecture
 
-### Cell Categories
+### Folder Hierarchy and Categories (kebab-case)
+- applications/<app>/cells/<domain>/<category>/<cell-name>
+- domains: core, features, shared
+- categories: ui, logic, storage, integration, io
+
+Example:
+```
+applications/my_app/cells/features/auth/ui/login-form/.cbs-spec/spec.md
+```
 - **`ui`** - User interface components (Flutter, web)
 - **`io`** - Input/output operations (file, network, stdio)  
 - **`logic`** - Business logic and data processing
@@ -157,20 +198,17 @@ Examples live under `applications/`. The `body` binary scans `./applications` re
 ```bash
 # from repo root
 cargo build -p body
-cd examples
-../target/debug/body --list-apps
+./target/debug/body --list-apps
 ```
 
 ### CLI Greeter (demo)
 ```bash
-cd examples
-../target/debug/body --app cli_greeter --demo
+./target/debug/body --app cli_greeter --demo
 ```
 
 ### Flutter Flow Web (serves prebuilt static assets)
 ```bash
-cd examples
-../target/debug/body --app flutter_flow_web
+./target/debug/body --app flutter_flow_web
 # Open http://localhost:8080
 ```
 
