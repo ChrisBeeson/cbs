@@ -9,6 +9,9 @@ CATALOG_JSON="$ROOT_DIR/framework/docs/cell_catalog.json"
 usage() {
   echo "Usage: cbs-cell <command> [args...]" >&2
   echo "Commands:" >&2
+  echo "  create <id> [--app A] [--category C] [--language L]" >&2
+  echo "                                Create a new cell spec (Spec‑Kit)" >&2
+  echo "  refine <id>                   Validate + show path to refine spec" >&2
   echo "  generate                 Generate catalog (MD + JSON)" >&2
   echo "  search [--language L] [--category C] [--id ID] [--subject S]" >&2
   echo "  install <cellId> <app>  Copy cell into applications/<app>/cells/<cellId>" >&2
@@ -79,6 +82,26 @@ PY
 }
 
 case "${1-}" in
+  create)
+    shift
+    [[ $# -ge 1 ]] || { usage; exit 2; }
+    cid="$1"; shift || true
+    exec "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /spec "$cid" "$@"
+    ;;
+  refine)
+    shift
+    [[ $# -ge 1 ]] || { usage; exit 2; }
+    cid="$1"; shift || true
+    "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /spec "$cid" >/dev/null 2>&1 || true
+    "$ROOT_DIR/cbs-agent/scripts/cbs-spec" /validate-spec "$cid" || true
+    # Show path for convenience
+    spec_dir="$ROOT_DIR/specs/$(ls -1 \"$ROOT_DIR/specs\" 2>/dev/null | grep \"$cid\" | head -n1)"
+    if [ -n "$spec_dir" ] && [ -f "$spec_dir/spec.md" ]; then
+      echo "📝 Refine: $spec_dir/spec.md"
+    else
+      echo "📝 Refine: specs/<date>-$cid/spec.md"
+    fi
+    ;;
   generate) shift; cmd_generate "$@" ;;
   search) shift; cmd_search "$@" ;;
   install) shift; [[ $# -eq 2 ]] || { usage; exit 2; }; cmd_install "$@" ;;

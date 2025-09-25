@@ -36,8 +36,8 @@
 
 ## Observability & Monitoring
 
-- **logging**: log crate (Rust), structured logging with correlation IDs
-- **tracing**: Built-in span tracking across cell communications
+- **logging**: tracing crate with tracing-subscriber (Rust), structured logs with correlation IDs
+- **tracing**: Span tracking across cell communications
 - **metrics**: NATS built-in monitoring with custom cell metrics
 - **error_handling**: Typed error envelopes with structured details
 

@@ -1,0 +1,437 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# CBS Constitution Management - View and validate constitutional compliance
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+CONSTITUTION_FILE="$ROOT_DIR/cbs-agent/docs/constitution.md"
+CHECKLIST_FILE="$ROOT_DIR/cbs-agent/docs/constitution_update_checklist.md"
+
+usage() {
+  echo "CBS Constitution Management"
+  echo
+  echo "Usage: cbs constitution <command> [options]"
+  echo
+  echo "Commands:"
+  echo "  show                                  Display the CBS Constitution"
+  echo "  validate [--app <app>] [--cell <cell>]  Validate constitutional compliance"
+  echo "  check <item>                          Check specific constitutional requirement"
+  echo "  update-checklist                      Show constitution update checklist"
+  echo "  version                               Show constitution version"
+  echo "  principles                            Show core constitutional principles"
+  echo
+  echo "Validation Commands:"
+  echo "  validate --app <app>                  Validate application constitutional compliance"
+  echo "  validate --cell <app>/<cell>          Validate cell constitutional compliance"
+  echo "  validate --all                        Validate all applications and cells"
+  echo
+  echo "Check Commands:"
+  echo "  check bus-only                        Verify bus-only communication"
+  echo "  check specifications                  Verify all cells have specifications"
+  echo "  check contracts                       Verify message contracts are valid"
+  echo "  check isolation                       Verify cell isolation"
+  echo
+  echo "Examples:"
+  echo "  cbs constitution show"
+  echo "  cbs constitution validate --app my_app"
+  echo "  cbs constitution check bus-only"
+  echo "  cbs constitution principles"
+}
+
+# Display the constitution
+show_constitution() {
+  if [ ! -f "$CONSTITUTION_FILE" ]; then
+    echo "❌ Constitution not found at: $CONSTITUTION_FILE"
+    exit 1
+  fi
+  
+  echo "📜 CBS Constitution"
+  echo "==================="
+  echo
+  cat "$CONSTITUTION_FILE"
+}
+
+# Show core principles summary
+show_principles() {
+  echo "🧬 CBS Constitutional Principles"
+  echo "================================"
+  echo
+  echo "🚌 THE CARDINAL RULE:"
+  echo "   Cells MUST ONLY communicate through the bus - NEVER directly"
+  echo
+  echo "📋 Core Principles:"
+  echo "   1. Bus-Only Communication - No direct cell-to-cell calls"
+  echo "   2. Cell Isolation - Complete independence between cells"
+  echo "   3. Single Responsibility - Each cell has one clear purpose"
+  echo "   4. Contract-First Development - Message contracts before implementation"
+  echo "   5. Typed Messages - All communication via typed Envelope messages"
+  echo
+  echo "🏗️ Cell Categories:"
+  echo "   • ui - User interface components"
+  echo "   • logic - Business logic and processing"
+  echo "   • storage - Data persistence and caching"
+  echo "   • integration - External service connections"
+  echo "   • io - Input/output operations"
+  echo
+  echo "📝 Required Structure:"
+  echo "   applications/<app>/cells/<cell>/"
+  echo "   ├── ai/spec.md          # Cell specification (REQUIRED)"
+  echo "   ├── lib/               # Implementation"
+  echo "   ├── test/              # Tests"
+  echo "   └── pubspec.yaml       # Dependencies"
+  echo
+  echo "💬 Message Format:"
+  echo "   Subject: cbs.<service>.<verb>"
+  echo "   Schema: domain/v1/TypeName"
+  echo "   Envelope: JSON with id, service, verb, schema, payload"
+}
+
+# Get constitution version
+get_constitution_version() {
+  if [ ! -f "$CONSTITUTION_FILE" ]; then
+    echo "unknown"
+    return
+  fi
+  
+  grep "^\*\*Version:\*\*" "$CONSTITUTION_FILE" | sed 's/\*\*Version:\*\* *//' | xargs || echo "1.0"
+}
+
+# Show constitution version
+show_version() {
+  local version=$(get_constitution_version)
+  echo "📜 CBS Constitution Version: $version"
+  
+  if [ -f "$CONSTITUTION_FILE" ]; then
+    local ratified=$(grep "^\*\*Ratified:\*\*" "$CONSTITUTION_FILE" | sed 's/\*\*Ratified:\*\* *//' | xargs || echo "September 21, 2025")
+    echo "📅 Ratified: $ratified"
+    
+    local status=$(grep "^\*\*Status:\*\*" "$CONSTITUTION_FILE" | sed 's/\*\*Status:\*\* *//' | xargs || echo "Active and Enforceable")
+    echo "✅ Status: $status"
+  fi
+}
+
+# Validate constitutional compliance
+validate_compliance() {
+  local scope="${1:-all}"
+  local target="${2:-}"
+  
+  echo "🔍 Validating Constitutional Compliance"
+  echo "======================================"
+  
+  local violations=0
+  local checks=0
+  
+  case "$scope" in
+    app)
+      if [ -z "$target" ]; then
+        echo "❌ Application name required for app validation"
+        exit 1
+      fi
+      violations=$((violations + $(validate_app_compliance "$target")))
+      checks=$((checks + 1))
+      ;;
+    cell)
+      if [ -z "$target" ]; then
+        echo "❌ Cell path required for cell validation (format: app/cell)"
+        exit 1
+      fi
+      violations=$((violations + $(validate_cell_compliance "$target")))
+      checks=$((checks + 1))
+      ;;
+    all)
+      violations=$((violations + $(validate_all_compliance)))
+      checks=$((checks + 1))
+      ;;
+    *)
+      echo "❌ Unknown validation scope: $scope"
+      exit 1
+      ;;
+  esac
+  
+  echo
+  if [ $violations -eq 0 ]; then
+    echo "✅ Constitutional compliance verified - no violations found"
+    return 0
+  else
+    echo "❌ Found $violations constitutional violations"
+    echo "📋 Review the CBS Constitution: cbs constitution show"
+    return 1
+  fi
+}
+
+# Validate application compliance
+validate_app_compliance() {
+  local app_name="$1"
+  local app_dir="$ROOT_DIR/applications/$app_name"
+  local violations=0
+  
+  echo "📱 Validating application: $app_name"
+  
+  if [ ! -d "$app_dir" ]; then
+    echo "❌ Application directory not found: $app_dir"
+    return 1
+  fi
+  
+  # Check app.yaml exists
+  if [ ! -f "$app_dir/app.yaml" ]; then
+    echo "❌ Missing app.yaml configuration"
+    violations=$((violations + 1))
+  else
+    echo "✅ Application configuration found"
+  fi
+  
+  # Validate all cells in the application
+  if [ -d "$app_dir/cells" ]; then
+    for cell_dir in "$app_dir/cells"/*; do
+      if [ -d "$cell_dir" ]; then
+        local cell_name=$(basename "$cell_dir")
+        local cell_violations=$(validate_cell_compliance "$app_name/$cell_name")
+        violations=$((violations + cell_violations))
+      fi
+    done
+  else
+    echo "⚠️  No cells directory found in application"
+  fi
+  
+  return $violations
+}
+
+# Validate cell compliance
+validate_cell_compliance() {
+  local cell_path="$1"
+  local app_name=$(echo "$cell_path" | cut -d/ -f1)
+  local cell_name=$(echo "$cell_path" | cut -d/ -f2)
+  local cell_dir="$ROOT_DIR/applications/$app_name/cells/$cell_name"
+  local violations=0
+  
+  echo "🔬 Validating cell: $cell_name"
+  
+  if [ ! -d "$cell_dir" ]; then
+    echo "❌ Cell directory not found: $cell_dir"
+    return 1
+  fi
+  
+  # Article I: Bus-Only Communication
+  echo "  🚌 Checking bus-only communication..."
+  if ! check_bus_only_communication "$cell_dir"; then
+    echo "    ❌ Constitutional violation: Direct cell-to-cell communication detected"
+    violations=$((violations + 1))
+  else
+    echo "    ✅ Bus-only communication verified"
+  fi
+  
+  # Article IV: Contract-First Development  
+  echo "  📋 Checking specification requirement..."
+  if [ ! -f "$cell_dir/ai/spec.md" ]; then
+    echo "    ❌ Constitutional violation: Missing required ai/spec.md"
+    violations=$((violations + 1))
+  else
+    echo "    ✅ Cell specification found"
+    
+    # Validate specification completeness
+    if ! validate_specification "$cell_dir/ai/spec.md"; then
+      echo "    ❌ Constitutional violation: Incomplete specification"
+      violations=$((violations + 1))
+    else
+      echo "    ✅ Specification is complete"
+    fi
+  fi
+  
+  # Article VI: Directory Structure
+  echo "  📁 Checking directory structure..."
+  local required_dirs=("lib" "test")
+  for dir in "${required_dirs[@]}"; do
+    if [ ! -d "$cell_dir/$dir" ]; then
+      echo "    ❌ Constitutional violation: Missing required directory: $dir"
+      violations=$((violations + 1))
+    fi
+  done
+  
+  if [ $violations -eq 0 ]; then
+    echo "  ✅ Cell passes all constitutional requirements"
+  fi
+  
+  return $violations
+}
+
+# Check bus-only communication
+check_bus_only_communication() {
+  local cell_dir="$1"
+  
+  # Look for potential violations in source files
+  if [ -d "$cell_dir/lib" ]; then
+    # Check for direct imports of other cells
+    if find "$cell_dir/lib" -name "*.dart" -o -name "*.rs" -o -name "*.py" | xargs grep -l "import.*cells/" 2>/dev/null; then
+      return 1
+    fi
+    
+    # Check for direct method calls to other cells (basic heuristic)
+    if find "$cell_dir/lib" -name "*.dart" -o -name "*.rs" -o -name "*.py" | xargs grep -l "\\.call\|->.*cell\|Cell::" 2>/dev/null; then
+      # This is a basic check - more sophisticated analysis would be needed for production
+      return 1
+    fi
+  fi
+  
+  return 0
+}
+
+# Validate specification completeness
+validate_specification() {
+  local spec_file="$1"
+  
+  # Check for required sections
+  local required_sections=(
+    "## Overview"
+    "## Interface"
+    "## Message"
+  )
+  
+  for section in "${required_sections[@]}"; do
+    if ! grep -q "^$section" "$spec_file"; then
+      return 1
+    fi
+  done
+  
+  return 0
+}
+
+# Validate all applications and cells
+validate_all_compliance() {
+  local total_violations=0
+  
+  echo "🌐 Validating all CBS applications and cells"
+  echo
+  
+  if [ -d "$ROOT_DIR/applications" ]; then
+    for app_dir in "$ROOT_DIR/applications"/*; do
+      if [ -d "$app_dir" ]; then
+        local app_name=$(basename "$app_dir")
+        local app_violations=$(validate_app_compliance "$app_name")
+        total_violations=$((total_violations + app_violations))
+        echo
+      fi
+    done
+  else
+    echo "⚠️  No applications directory found"
+  fi
+  
+  return $total_violations
+}
+
+# Check specific constitutional requirement
+check_requirement() {
+  local requirement="$1"
+  
+  case "$requirement" in
+    bus-only)
+      echo "🚌 Checking bus-only communication requirement..."
+      validate_compliance "all" | grep -E "(bus-only|direct.*communication)" || echo "✅ Bus-only communication verified across all cells"
+      ;;
+    specifications)
+      echo "📋 Checking specification requirement..."
+      find "$ROOT_DIR/applications" -name "cells" -type d 2>/dev/null | while read cells_dir; do
+        find "$cells_dir" -mindepth 1 -maxdepth 1 -type d | while read cell_dir; do
+          if [ ! -f "$cell_dir/ai/spec.md" ]; then
+            echo "❌ Missing specification: $cell_dir/ai/spec.md"
+          fi
+        done
+      done
+      ;;
+    contracts)
+      echo "💬 Checking message contracts..."
+      echo "⚠️  Message contract validation requires deeper analysis - use 'cbs validate' for full validation"
+      ;;
+    isolation)
+      echo "🔒 Checking cell isolation..."
+      echo "⚠️  Cell isolation validation requires code analysis - use 'cbs isolation' for full validation"
+      ;;
+    *)
+      echo "❌ Unknown requirement: $requirement"
+      echo "Available requirements: bus-only, specifications, contracts, isolation"
+      exit 1
+      ;;
+  esac
+}
+
+# Show update checklist
+show_update_checklist() {
+  if [ ! -f "$CHECKLIST_FILE" ]; then
+    echo "❌ Constitution update checklist not found at: $CHECKLIST_FILE"
+    exit 1
+  fi
+  
+  echo "📝 CBS Constitution Update Checklist"
+  echo "===================================="
+  echo
+  cat "$CHECKLIST_FILE"
+}
+
+# Main command handler
+main() {
+  if [[ $# -eq 0 ]]; then
+    usage
+    exit 1
+  fi
+  
+  local command="$1"
+  shift
+  
+  case "$command" in
+    show)
+      show_constitution
+      ;;
+    principles)
+      show_principles
+      ;;
+    version)
+      show_version
+      ;;
+    validate)
+      local scope="all"
+      local target=""
+      
+      while [[ $# -gt 0 ]]; do
+        case $1 in
+          --app)
+            scope="app"
+            target="$2"
+            shift 2
+            ;;
+          --cell)
+            scope="cell"
+            target="$2"
+            shift 2
+            ;;
+          --all)
+            scope="all"
+            shift
+            ;;
+          *)
+            echo "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+        esac
+      done
+      
+      validate_compliance "$scope" "$target"
+      ;;
+    check)
+      if [[ $# -lt 1 ]]; then
+        echo "❌ Requirement name required"
+        usage
+        exit 1
+      fi
+      check_requirement "$1"
+      ;;
+    update-checklist)
+      show_update_checklist
+      ;;
+    *)
+      echo "Unknown command: $command"
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

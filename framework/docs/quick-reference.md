@@ -129,9 +129,9 @@ Err(BusError::BadRequest("Invalid user ID".to_string()))
 
 // Handle error in caller
 match bus.request(envelope).await {
-    Ok(data) => println!("Success: {:?}", data),
-    Err(BusError::NotFound(msg)) => println!("Not found: {}", msg),
-    Err(e) => println!("Error: {}", e),
+    Ok(data) => tracing::info!(?data, "Success"),
+    Err(BusError::NotFound(msg)) => tracing::warn!(%msg, "Not found"),
+    Err(e) => tracing::error!(error = %e, "Error"),
 }
 ```
 
@@ -241,7 +241,8 @@ body --app my_app --nats-url nats://cluster:4222
 ### Correlation IDs
 Every message has a UUID for tracing:
 ```rust
-println!("Processing request {}", envelope.id);
+use tracing::info;
+info!(request_id = %envelope.id, "Processing request");
 ```
 
 ### Message Monitoring
@@ -254,10 +255,10 @@ cells:
 
 ### Logging
 ```rust
-use log::{info, error, debug};
+use tracing::{info, error, debug};
 
-info!("Cell {} handling {}", self.id(), envelope.subject());
-error!("Failed to process request {}: {}", envelope.id, error);
+info!(cell = %self.id(), subject = %envelope.subject(), "Handling request");
+error!(request_id = %envelope.id, error = %error, "Failed to process request");
 ```
 
 ## Common Anti-Patterns

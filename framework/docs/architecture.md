@@ -216,6 +216,10 @@ Application → Body → BodyBus → NATS → BodyBus → Cell
 4. **Target cell receives** and processes message
 5. **Response envelope** sent back with correlation ID
 
+#### Subject naming
+- Use `cbs.{service}.{verb}`; see `framework/docs/subject-naming.md` for conventions
+- Prefer service names that reflect capability; consider `_{category}` suffix when practical (e.g., `auth_logic`)
+
 ### Envelope Structure
 ```json
 {

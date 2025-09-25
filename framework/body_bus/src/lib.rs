@@ -3,6 +3,7 @@ use body_core::{BodyBus, BusError, Envelope, MessageHandler};
 use futures_util::StreamExt;
 use serde_json::Value;
 use std::sync::Arc;
+use tracing::{debug, error, info, warn};
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::time::timeout;
@@ -150,7 +151,7 @@ impl BodyBus for NatsBus {
                 let envelope: Envelope = match serde_json::from_slice(&message.payload) {
                     Ok(env) => env,
                     Err(e) => {
-                        eprintln!("Failed to deserialize message: {}", e);
+                        error!(error = %e, "Failed to deserialize message");
                         continue;
                     }
                 };
@@ -195,7 +196,7 @@ impl BodyBus for NatsBus {
                 if let Ok(response_payload) = serde_json::to_vec(&response_envelope) {
                     if let Some(reply) = message.reply {
                         if let Err(e) = client_ref.publish(reply, response_payload.into()).await {
-                            eprintln!("Failed to send response: {}", e);
+                            error!(error = %e, "Failed to send response");
                         }
                     }
                 }

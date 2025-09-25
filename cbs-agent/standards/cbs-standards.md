@@ -35,6 +35,7 @@ applications/<app>/cells/<cell>/
 - Schema versioning: `service.verb.v1` in envelope metadata
 - Envelope structure: JSON with `schema`, `payload`, `correlation_id`
 - Error handling: Publish error envelopes with clear messages
+- See `framework/docs/subject-naming.md` for naming conventions and service suffix guidance
 
 ### Quality Standards
 - **Logging**: Use platform logging (`log.d/i/w/e` in Flutter; keep logs concise)

@@ -29,6 +29,15 @@
 
 ## 🚀 Quick Start
 
+### Prerequisites
+```bash
+# Rust toolchain
+curl https://sh.rustup.rs -sSf | sh
+
+# macOS: accept Xcode license to enable linker
+sudo xcodebuild -license
+```
+
 ### Create New CBS Project
 
 ```bash
@@ -127,30 +136,54 @@ Envelope: {
 
 ### Running Applications
 ```bash
-# Run specific application
-cargo run -p cbs_body -- --app my_app
+# Build the framework binaries from repo root
+cargo build --workspace
+
+# List apps in the current project directory (expects ./applications here)
+./target/debug/body --list-apps
+
+# Run a specific application
+./target/debug/body --app my_app
 
 # Demo mode with simulated input
-cargo run -p cbs_body -- --app my_app --demo
-
-# List available applications
-cargo run -p cbs_body -- --list-apps
+./target/debug/body --app my_app --demo
 ```
 
 ## 📚 Examples
 
-### CLI Greeter
-Simple command-line application demonstrating cell communication:
+Examples live under `examples/applications/`. The `body` binary scans `./applications` relative to your working directory. For examples, run the binary from `examples/`.
+
+### List available example apps
 ```bash
-cd examples/cli_greeter
-cargo run -p cbs_body -- --app cli_greeter --demo
+# from repo root
+cargo build -p body
+cd examples
+../target/debug/body --list-apps
 ```
 
-### Flutter Flow Web
-Web application built with Flutter cells:
+### CLI Greeter (demo)
 ```bash
-cd examples/flutter_flow_web
-cargo run -p cbs_body -- --app flutter_flow_web
+cd examples
+../target/debug/body --app cli_greeter --demo
+```
+
+### Flutter Flow Web (serves prebuilt static assets)
+```bash
+cd examples
+../target/debug/body --app flutter_flow_web
+# Open http://localhost:8080
+```
+
+Notes:
+- No Flutter toolchain needed to run; prebuilt web assets are included.
+- Interactive CLI mode is not yet implemented; use `--demo`.
+
+### Troubleshooting (macOS)
+```bash
+# If you see a linker error about Xcode license, run:
+sudo xcodebuild -license
+# Then rebuild
+cargo build -p body
 ```
 
 ## 🧪 Testing Strategy

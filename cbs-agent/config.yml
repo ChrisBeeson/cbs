@@ -1,9 +1,6 @@
-# Agent OS Configuration
 
-# Refer to the official Agent OS documentation at:
-# https://buildermethods.com/agent-os
 
-agent_os_version: 1.4.1
+cbs_agent_version: 1.0.0
 
 agents:
   claude_code:

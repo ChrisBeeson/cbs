@@ -7,6 +7,10 @@ import os, re, sys
 
 REQUIRED = ["id","name","version","language","category","purpose"]
 
+CATEGORY_SUFFIX_ALLOWED = {"ui", "io", "logic", "integration", "storage"}
+ENFORCE_SUFFIX = os.getenv("CBS_ENFORCE_SERVICE_SUFFIX", "0") == "1"
+
+
 def _strip_md_value(s: str) -> str:
     # remove wrapping backticks and bold markers
     s = s.strip()
@@ -50,8 +54,18 @@ def parse_dna(md_path):
 
     return data
 
+
+def _service_from_subject(subj: str) -> str:
+    # expects cbs.service.verb[.suffix]
+    parts = subj.split('.')
+    if len(parts) < 3:
+        return ''
+    return parts[1]
+
+
 def validate(d):
     errors = []
+    warnings = []
     missing = [k for k in REQUIRED if not d.get(k)]
     if missing:
         errors.append(f"missing: {', '.join(missing)}")
@@ -74,7 +88,21 @@ def validate(d):
     if not all_subjects:
         errors.append("no bus subjects defined - cells must communicate via bus")
 
-    return errors
+    # Optional: check service suffix matches category
+    category = (d.get("category") or "").strip().lower()
+    if category in CATEGORY_SUFFIX_ALLOWED and all_subjects:
+        for subj in all_subjects:
+            service = _service_from_subject(subj)
+            if not service:
+                continue
+            if not service.endswith(f"_{category}"):
+                msg = f"service '{service}' should end with '_{category}' per naming guide"
+                if ENFORCE_SUFFIX:
+                    errors.append(msg)
+                else:
+                    warnings.append(msg)
+
+    return errors, warnings
 
 
 def main():
@@ -99,15 +127,20 @@ def main():
     failed = 0
     for md in dna_files:
         d = parse_dna(md)
-        errs = validate(d)
+        errs, warns = validate(d)
         if errs:
             failed += 1
             print(f"FAIL {md}")
             for e in errs:
                 print(f"  - {e}")
+            for w in warns:
+                print(f"  ~ {w}")
         else:
             print(f"OK   {md}")
+            for w in warns:
+                print(f"  ~ {w}")
     return 1 if failed else 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

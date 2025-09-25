@@ -4,6 +4,8 @@ use std::env;
 use std::process;
 use std::sync::Arc;
 use tokio;
+use tracing::{debug, error, info, warn};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use tokio::sync::RwLock;
 
 // Import web server for serving applications
@@ -85,53 +87,53 @@ impl BodyConfig {
 
 /// Print help message
 fn print_help() {
-    println!("Cell Body System (CBS) Framework");
-    println!();
-    println!("USAGE:");
-    println!("    body [OPTIONS]");
-    println!();
-    println!("OPTIONS:");
-    println!("    --app <NAME>        Load specific application from applications/ directory");
-    println!("    --list-apps         List all available applications");
-    println!("    --nats-url <URL>    NATS server URL (default: nats://localhost:4222)");
-    println!("    --demo              Run in demo mode with simulated input");
-    println!("    --mock-bus          Use mock bus instead of NATS (for testing)");
-    println!("    -h, --help          Print this help message");
-    println!();
-    println!("ENVIRONMENT VARIABLES:");
-    println!("    NATS_URL           NATS server URL");
-    println!("    CBS_DEMO_MODE      Enable demo mode");
-    println!("    CBS_MOCK_BUS       Use mock bus");
-    println!();
-    println!("EXAMPLES:");
-    println!("    body --list-apps                    # List available applications");
-    println!("    body --app cli_greeter              # Run CLI greeter application");
-    println!("    body --app flutter_flow_web         # Run Flutter web application");
-    println!("    body --app my_app --demo            # Run application in demo mode");
+    info!("Cell Body System (CBS) Framework");
+    info!("");
+    info!("USAGE:");
+    info!("    body [OPTIONS]");
+    info!("");
+    info!("OPTIONS:");
+    info!("    --app <NAME>        Load specific application from applications/ directory");
+    info!("    --list-apps         List all available applications");
+    info!("    --nats-url <URL>    NATS server URL (default: nats://localhost:4222)");
+    info!("    --demo              Run in demo mode with simulated input");
+    info!("    --mock-bus          Use mock bus instead of NATS (for testing)");
+    info!("    -h, --help          Print this help message");
+    info!("");
+    info!("ENVIRONMENT VARIABLES:");
+    info!("    NATS_URL           NATS server URL");
+    info!("    CBS_DEMO_MODE      Enable demo mode");
+    info!("    CBS_MOCK_BUS       Use mock bus");
+    info!("");
+    info!("EXAMPLES:");
+    info!("    body --list-apps                    # List available applications");
+    info!("    body --app cli_greeter              # Run CLI greeter application");
+    info!("    body --app flutter_flow_web         # Run Flutter web application");
+    info!("    body --app my_app --demo            # Run application in demo mode");
 }
 
 /// List available applications
 fn list_applications() {
-    println!("🔍 Scanning for CBS applications...");
+    info!("Scanning for CBS applications...");
     
     let app_loader = AppLoader::new("./applications");
     match app_loader.discover_applications() {
         Ok(apps) => {
             if apps.is_empty() {
-                println!("📭 No applications found in ./applications/");
-                println!("   Create your first application:");
-                println!("   mkdir -p applications/my_app/cells");
-                println!("   # Add app.yaml configuration");
+                info!("No applications found in ./applications/");
+                info!("Create your first application:");
+                info!("mkdir -p applications/my_app/cells");
+                info!("# Add app.yaml configuration");
             } else {
-                println!("📦 Available applications:");
+                info!("Available applications:");
                 for app in apps {
-                    println!("   - {}", app);
+                    info!(name = %app, "app");
                 }
             }
         }
         Err(e) => {
-            println!("❌ Error discovering applications: {}", e);
-            println!("   Make sure you're in a CBS project directory");
+            error!(error = %e, "Error discovering applications");
+            info!("Make sure you're in a CBS project directory");
         }
     }
 }
@@ -165,7 +167,7 @@ impl BodyBus for MockBus {
     async fn subscribe(&self, subject: &str, handler: body_core::MessageHandler) -> Result<(), BusError> {
         let mut handlers = self.handlers.write().await;
         handlers.insert(subject.to_string(), handler);
-        println!("MockBus: Subscribed to {}", subject);
+        info!(subject = %subject, "MockBus: Subscribed");
         Ok(())
     }
 }
@@ -184,24 +186,24 @@ impl Body {
     
     /// Run the CBS framework
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("🧬 Cell Body System (CBS) Framework");
-        println!("====================================");
+        info!("🧬 Cell Body System (CBS) Framework");
+        info!("====================================");
         
         // Handle application loading if --app parameter provided
         if let Some(app_name) = &self.config.app_name {
             self.run_application(app_name).await
         } else {
-            println!("❌ No application specified");
-            println!("   Use --app <name> to run an application");
-            println!("   Use --list-apps to see available applications");
-            println!("   Use --help for more options");
+            error!("No application specified");
+            info!("Use --app <name> to run an application");
+            info!("Use --list-apps to see available applications");
+            info!("Use --help for more options");
             process::exit(1);
         }
     }
     
     /// Run a specific application
     async fn run_application(&self, app_name: &str) -> Result<(), Box<dyn std::error::Error>> {
-        println!("🚀 Loading application: {}", app_name);
+        info!(app = app_name, "Loading application");
         
         // Discover available applications
         let available_apps = self.app_loader.discover_applications()?;
@@ -212,10 +214,7 @@ impl Body {
         
         // Load application configuration
         let app_config = self.app_loader.load_application(app_name)?;
-        println!("📋 Loaded configuration for '{}' v{}", app_config.name, app_config.version);
-        println!("    Description: {}", app_config.description);
-        println!("    Cells: {}", app_config.cells.len());
-        println!("    Shared cells: {}", app_config.shared_cells.len());
+        info!(name = %app_config.name, version = %app_config.version, desc = %app_config.description, cells = app_config.cells.len(), shared = app_config.shared_cells.len(), "Loaded application config");
         
         // Determine application type based on name or configuration
         // This is a simple heuristic - in the future, app.yaml should include type
@@ -230,7 +229,7 @@ impl Body {
     
     /// Run a web application
     async fn run_web_application(&self, app_config: &body_core::AppConfig) -> Result<(), Box<dyn std::error::Error>> {
-        println!("🌐 Starting Web Application: {}", app_config.name);
+        info!(name = %app_config.name, "Starting Web Application");
         
         // Set up web server configuration
         let web_dir = format!("./applications/{}/web", app_config.name);
@@ -242,14 +241,14 @@ impl Body {
         
         let web_server_cell = web_server::WebServerCell::new(web_config);
         
-        println!("📁 Serving static files from: {}", web_dir);
-        println!("🌐 Starting web server on http://localhost:8080");
+        info!(path = %web_dir, "Serving static files from");
+        info!("Starting web server on http://localhost:8080");
         
         // Start the web server
         let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
-        println!("✅ Web application '{}' is running!", app_config.name);
-        println!("   Open your browser to: http://localhost:8080");
-        println!("   Press Ctrl+C to stop");
+        info!(name = %app_config.name, "Web application is running");
+        info!("Open your browser to: http://localhost:8080");
+        info!("Press Ctrl+C to stop");
         
         web_server_cell.serve(listener).await?;
         
@@ -258,16 +257,16 @@ impl Body {
     
     /// Run a CLI application
     async fn run_cli_application(&self, app_config: &body_core::AppConfig) -> Result<(), Box<dyn std::error::Error>> {
-        println!("💻 Starting CLI Application: {}", app_config.name);
+        info!(name = %app_config.name, "Starting CLI Application");
         
         if self.config.demo_mode {
-            println!("🎭 Running in demo mode");
+            info!("Running in demo mode");
             // In demo mode, we would simulate the application flow
             self.show_application_info(app_config);
-            println!("✅ Demo mode completed for '{}'", app_config.name);
+            info!(name = %app_config.name, "Demo mode completed");
         } else {
-            println!("⚠️  Interactive CLI mode not yet implemented in framework");
-            println!("    Application cells would be loaded and orchestrated here");
+            warn!("Interactive CLI mode not yet implemented in framework");
+            info!("Application cells would be loaded and orchestrated here");
             self.show_application_info(app_config);
         }
         
@@ -276,40 +275,38 @@ impl Body {
     
     /// Run a service application
     async fn run_service_application(&self, app_config: &body_core::AppConfig) -> Result<(), Box<dyn std::error::Error>> {
-        println!("🔧 Starting Service Application: {}", app_config.name);
+        info!(name = %app_config.name, "Starting Service Application");
         
         // Create MockBus for now (would use NATS in production)
         let _bus = MockBus::new();
         
-        println!("🚌 Using MockBus for cell communication");
-        println!("📋 Application would register {} cells", app_config.cells.len());
+        info!("Using MockBus for cell communication");
+        info!(cells = app_config.cells.len(), "Application would register cells");
         
         self.show_application_info(app_config);
         
-        println!("⚠️  Service orchestration not yet implemented in framework");
-        println!("    Cells would be loaded, registered, and coordinated here");
+        warn!("Service orchestration not yet implemented in framework");
+        info!("Cells would be loaded, registered, and coordinated here");
         
         Ok(())
     }
     
     /// Show application information
     fn show_application_info(&self, app_config: &body_core::AppConfig) {
-        println!("\n📊 Application Details:");
-        println!("   Name: {}", app_config.name);
-        println!("   Version: {}", app_config.version);
-        println!("   Description: {}", app_config.description);
+        info!("Application Details:");
+        info!(name = %app_config.name, version = %app_config.version, desc = %app_config.description, "Meta");
         
         if !app_config.cells.is_empty() {
-            println!("\n🔬 Cells:");
+            info!("Cells:");
             for cell in &app_config.cells {
-                println!("   - {} ({})", cell.name, cell.path);
+                info!(name = %cell.name, path = %cell.path, "cell");
             }
         }
         
         if !app_config.shared_cells.is_empty() {
-            println!("\n📦 Shared Cells:");
+            info!("Shared Cells:");
             for cell_name in &app_config.shared_cells {
-                println!("   - {}", cell_name);
+                info!(name = %cell_name, "shared_cell");
             }
         }
     }
@@ -317,16 +314,21 @@ impl Body {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize tracing subscriber once for the framework
+    let _ = tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+        .with(fmt::layer().with_target(false).compact())
+        .try_init();
+
     let config = BodyConfig::from_env_and_args();
     
-    println!("🔧 CBS Framework Configuration:");
-    println!("   NATS URL: {}", config.nats_url);
-    println!("   Demo Mode: {}", config.demo_mode);
-    println!("   Mock Bus: {}", config.use_mock_bus);
-    if let Some(app_name) = &config.app_name {
-        println!("   Application: {}", app_name);
-    }
-    println!();
+    info!(
+        nats_url = %config.nats_url,
+        demo = config.demo_mode,
+        mock_bus = config.use_mock_bus,
+        app = config.app_name.as_deref().unwrap_or("<none>"),
+        "CBS Framework Configuration"
+    );
     
     let body = Body::new(config);
     body.run().await

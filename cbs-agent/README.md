@@ -2,6 +2,23 @@
 
 Unified Cell Body System development tools and standards with **iterative development workflow support**.
 
+## Quick Start - Friendly Commands
+
+```bash
+# Start a new app (workflow + app_spec.md)
+cbs new app my_app
+
+# Create a new cell spec (Spec‑Kit under specs/<date>‑<cell>/)
+cbs new cell user_auth --app my_app --category logic --language dart
+
+# Refine existing app or cell
+cbs refine app my_app
+cbs refine cell user_auth
+
+# Optional: interactive wizard
+cbs wizard
+```
+
 ## Quick Start - New Iterative Workflow
 
 ```bash
